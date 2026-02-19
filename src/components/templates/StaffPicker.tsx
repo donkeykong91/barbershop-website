@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
-import type { StaffMember } from '@/features/staff/types';
 import { Section } from '@/components/ui/layout/Section';
+import type { StaffMember } from '@/features/staff/types';
 
 type StaffPickerProps = {
   staff: StaffMember[];

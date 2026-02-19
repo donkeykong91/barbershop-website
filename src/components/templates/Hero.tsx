@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button/Button';
 import { HeroOneButton } from '@/components/ui/hero/HeroOneButton';
 import { Section } from '@/components/ui/layout/Section';
 import { NavbarTwoColumns } from '@/components/ui/navigation/NavbarTwoColumns';
+
 import { Logo } from './Logo';
 
 const baseNavLinkClass =

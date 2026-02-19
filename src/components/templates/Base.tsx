@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 
+import { Meta } from '@/components/ui/layout/Meta';
 import type { Service } from '@/features/services/types';
 import type { StaffMember } from '@/features/staff/types';
-import { Meta } from '@/components/ui/layout/Meta';
 import { AppConfig } from '@/utils/AppConfig';
+
 import { Banner } from './Banner';
 import { Footer } from './Footer';
 import { Hero } from './Hero';

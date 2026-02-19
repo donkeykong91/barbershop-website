@@ -1,19 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import handler from './cancel';
 import {
-  verifyBookingAccessToken,
-  getBookingById,
   cancelBooking,
+  getBookingById,
+  verifyBookingAccessToken,
 } from '../../../../../features/bookings/repository';
 import {
   consumeActionToken,
-  logBookingEvent,
   verifyActionToken,
 } from '../../../../../features/bookings/v2Repository';
 import { getBookingAccessToken } from '../../../../../lib/security/bookingAccessToken';
 import { getClientIp } from '../../../../../lib/security/clientIp';
 import { checkRateLimit } from '../../../../../lib/security/rateLimit';
+import handler from './cancel';
 
 jest.mock('../../../../../features/bookings/repository', () => ({
   verifyBookingAccessToken: jest.fn(),
@@ -39,14 +38,15 @@ jest.mock('../../../../../lib/security/rateLimit', () => ({
   checkRateLimit: jest.fn(),
 }));
 
-const createReq = (overrides: Partial<NextApiRequest>): NextApiRequest => ({
-  method: 'POST',
-  query: {},
-  headers: {},
-  socket: { remoteAddress: '127.0.0.1' },
-  body: {},
-  ...overrides,
-} as NextApiRequest);
+const createReq = (overrides: Partial<NextApiRequest>): NextApiRequest =>
+  ({
+    method: 'POST',
+    query: {},
+    headers: {},
+    socket: { remoteAddress: '127.0.0.1' },
+    body: {},
+    ...overrides,
+  }) as NextApiRequest;
 
 type MockRes = NextApiResponse & {
   statusCode: number;
@@ -134,7 +134,11 @@ describe('POST /api/v1/bookings/[bookingId]/cancel', () => {
     await handler(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.data).toEqual({ id: 'booking-1', status: 'cancelled', idempotent: true });
+    expect(res.body.data).toEqual({
+      id: 'booking-1',
+      status: 'cancelled',
+      idempotent: true,
+    });
     expect(cancelBooking).not.toHaveBeenCalled();
     expect(consumeActionToken).not.toHaveBeenCalled();
   });

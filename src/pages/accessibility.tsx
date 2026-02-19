@@ -1,6 +1,6 @@
+import { Footer } from '../components/templates/Footer';
 import { Meta } from '../components/ui/layout/Meta';
 import { Section } from '../components/ui/layout/Section';
-import { Footer } from '../components/templates/Footer';
 import { AppConfig } from '../utils/AppConfig';
 
 const AccessibilityPage = () => (

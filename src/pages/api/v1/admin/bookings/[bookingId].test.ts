@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import handler from './[bookingId]';
 import {
   getBookingById,
   updateBookingStatus,
@@ -8,6 +7,7 @@ import {
 import { recordAdminAuditEvent } from '../../../../../lib/security/adminAudit';
 import { requireAdminApiKey } from '../../../../../lib/security/adminAuth';
 import { applyAdminRateLimit } from '../../../../../lib/security/adminRateLimit';
+import handler from './[bookingId]';
 
 jest.mock('../../../../../features/bookings/repository', () => ({
   getBookingById: jest.fn(),

@@ -14,9 +14,9 @@ describe('parseIntEnv', () => {
 
 describe('ensureIsoDateTime', () => {
   it('accepts ISO-8601 datetime with UTC offset', () => {
-    expect(
-      ensureIsoDateTime('2026-02-17T12:30:00.000Z', 'slotStart'),
-    ).toBe('2026-02-17T12:30:00.000Z');
+    expect(ensureIsoDateTime('2026-02-17T12:30:00.000Z', 'slotStart')).toBe(
+      '2026-02-17T12:30:00.000Z',
+    );
   });
 
   it('accepts ISO-8601 datetime with signed timezone', () => {

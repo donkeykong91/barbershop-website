@@ -1,14 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import handler from './reschedule';
-import { getBookingById, updateBookingStatus, assertRescheduleSlot } from '../../../../../features/bookings/repository';
 import {
-  createActionToken,
+  assertRescheduleSlot,
+  getBookingById,
+  updateBookingStatus,
+} from '../../../../../features/bookings/repository';
+import {
   consumeActionToken,
+  createActionToken,
   verifyActionToken,
 } from '../../../../../features/bookings/v2Repository';
 import { run } from '../../../../../lib/db/sqlite';
 import { checkRateLimit } from '../../../../../lib/security/rateLimit';
+import handler from './reschedule';
 
 jest.mock('../../../../../features/bookings/repository', () => ({
   assertRescheduleSlot: jest.fn(),
@@ -32,19 +36,24 @@ jest.mock('../../../../../lib/security/clientIp', () => ({
 }));
 
 jest.mock('../../../../../lib/security/rateLimit', () => ({
-  checkRateLimit: jest.fn(() => ({ allowed: true, retryAfterSec: 60, remaining: 5 })),
+  checkRateLimit: jest.fn(() => ({
+    allowed: true,
+    retryAfterSec: 60,
+    remaining: 5,
+  })),
 }));
 
 const runMock = run as jest.Mock;
 
-const createReq = (overrides: Partial<NextApiRequest>): NextApiRequest => ({
-  method: 'POST',
-  query: {},
-  headers: {},
-  socket: { remoteAddress: '127.0.0.1' },
-  body: {},
-  ...overrides,
-} as NextApiRequest);
+const createReq = (overrides: Partial<NextApiRequest>): NextApiRequest =>
+  ({
+    method: 'POST',
+    query: {},
+    headers: {},
+    socket: { remoteAddress: '127.0.0.1' },
+    body: {},
+    ...overrides,
+  }) as NextApiRequest;
 
 type MockRes = NextApiResponse & {
   statusCode: number;
@@ -86,7 +95,10 @@ describe('reschedule endpoint', () => {
   });
 
   it('issues action token via GET', async () => {
-    (createActionToken as jest.Mock).mockResolvedValueOnce({ token: 'abc', expiresAt: '' });
+    (createActionToken as jest.Mock).mockResolvedValueOnce({
+      token: 'abc',
+      expiresAt: '',
+    });
 
     const req = createReq({ method: 'GET', query: { bookingId: 'booking-1' } });
     const res = createRes();
@@ -155,7 +167,9 @@ describe('reschedule endpoint', () => {
 
   it('validates slot shape and ordering before mutate', async () => {
     (verifyActionToken as jest.Mock).mockResolvedValue(true);
-    (assertRescheduleSlot as jest.Mock).mockRejectedValue(new Error('INVALID_SLOT_RANGE'));
+    (assertRescheduleSlot as jest.Mock).mockRejectedValue(
+      new Error('INVALID_SLOT_RANGE'),
+    );
     (consumeActionToken as jest.Mock).mockResolvedValue(true);
     (getBookingById as jest.Mock).mockResolvedValue({
       id: 'booking-1',
@@ -184,7 +198,9 @@ describe('reschedule endpoint', () => {
 
   it('rejects conflicting slot with explicit conflict code', async () => {
     (verifyActionToken as jest.Mock).mockResolvedValue(true);
-    (assertRescheduleSlot as jest.Mock).mockRejectedValue(new Error('SLOT_UNAVAILABLE'));
+    (assertRescheduleSlot as jest.Mock).mockRejectedValue(
+      new Error('SLOT_UNAVAILABLE'),
+    );
     (consumeActionToken as jest.Mock).mockResolvedValue(true);
     (getBookingById as jest.Mock).mockResolvedValue({
       id: 'booking-1',

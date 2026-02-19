@@ -10,11 +10,14 @@ type ICenteredFooterProps = {
 };
 
 const CenteredFooter = (props: ICenteredFooterProps) => (
-  <div className="w-full min-w-0 max-w-full overflow-x-hidden overflow-x-clip text-center">
+  <div className="w-full min-w-0 max-w-full overflow-x-hidden text-center">
     {props.logo}
 
-    <nav className="w-full min-w-0 max-w-full overflow-x-hidden overflow-x-clip" aria-label="Footer links">
-      <ul className="footer-links mt-5 m-0 flex flex-wrap w-full min-w-0 max-w-full list-none flex-col items-stretch gap-y-2 overflow-x-hidden overflow-x-clip p-0 text-base font-medium text-gray-800 sm:flex-row sm:justify-center sm:gap-x-6 sm:text-xl">
+    <nav
+      className="w-full min-w-0 max-w-full overflow-x-hidden"
+      aria-label="Footer links"
+    >
+      <ul className="footer-links m-0 mt-5 flex w-full min-w-0 max-w-full list-none flex-col flex-wrap items-stretch gap-y-2 overflow-x-hidden p-0 text-base font-medium text-gray-800 sm:flex-row sm:justify-center sm:gap-x-6 sm:text-xl">
         {props.children}
       </ul>
     </nav>

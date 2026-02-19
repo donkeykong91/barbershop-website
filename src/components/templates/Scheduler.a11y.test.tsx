@@ -228,7 +228,9 @@ describe('Scheduler accessibility regressions', () => {
 
     await user.click(screen.getByRole('button', { name: 'Review summary' }));
     await user.click(screen.getByLabelText(/I agree to the Terms/i));
-    await user.click(screen.getByLabelText(/I acknowledge the Privacy Policy/i));
+    await user.click(
+      screen.getByLabelText(/I acknowledge the Privacy Policy/i),
+    );
     await user.click(
       screen.getByLabelText(/I agree to the cancellation, reschedule/i),
     );
@@ -324,4 +326,3 @@ describe('Scheduler accessibility regressions', () => {
     );
   });
 });
-

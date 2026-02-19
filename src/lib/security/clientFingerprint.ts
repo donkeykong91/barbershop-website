@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-
 import type { NextApiRequest } from 'next';
 
 const normalize = (value: string | string[] | undefined) => {

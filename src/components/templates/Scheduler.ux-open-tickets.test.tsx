@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { Footer } from './Footer';
@@ -99,7 +105,6 @@ describe('Open UX ticket regression coverage', () => {
 
     fireEvent.click(screen.getByRole('radio'));
 
-
     fireEvent.change(screen.getByLabelText(/first name/i), {
       target: { value: 'Pat' },
     });
@@ -174,7 +179,6 @@ describe('Open UX ticket regression coverage', () => {
       screen.getByRole('button', { name: /find available slots/i }),
     );
     fireEvent.click(await screen.findByRole('radio', { name: /staff:/i }));
-
 
     fireEvent.change(screen.getByLabelText(/first name/i), {
       target: { value: 'Pat' },
@@ -258,7 +262,9 @@ describe('Open UX ticket regression coverage', () => {
 
     const supportLink = screen.getByRole('link', { name: /email support/i });
     expect(supportLink).toBeVisible();
-    expect(supportLink).toHaveAttribute('href', 'mailto:support@kevinbarbershop.com');
+    expect(supportLink).toHaveAttribute(
+      'href',
+      'mailto:support@kevinbarbershop.com',
+    );
   });
 });
-

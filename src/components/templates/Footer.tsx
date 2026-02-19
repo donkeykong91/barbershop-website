@@ -4,6 +4,7 @@ import { Background } from '@/components/ui/background/Background';
 import { CenteredFooter } from '@/components/ui/footer/CenteredFooter';
 import { Section } from '@/components/ui/layout/Section';
 import { AppConfig } from '@/utils/AppConfig';
+
 import { Logo } from './Logo';
 
 const Footer = () => (

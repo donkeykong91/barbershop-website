@@ -28,7 +28,9 @@ jest.mock('../../../lib/security/rateLimit', () => ({
   checkRateLimit: jest.fn(),
 }));
 
-const { checkRateLimit } = jest.requireMock('../../../lib/security/rateLimit') as {
+const { checkRateLimit } = jest.requireMock(
+  '../../../lib/security/rateLimit',
+) as {
   checkRateLimit: jest.Mock;
 };
 
@@ -76,8 +78,16 @@ describe('availability abuse shield', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     checkRateLimit
-      .mockResolvedValueOnce({ allowed: true, retryAfterSec: 60, remaining: 10 })
-      .mockResolvedValueOnce({ allowed: true, retryAfterSec: 60, remaining: 10 });
+      .mockResolvedValueOnce({
+        allowed: true,
+        retryAfterSec: 60,
+        remaining: 10,
+      })
+      .mockResolvedValueOnce({
+        allowed: true,
+        retryAfterSec: 60,
+        remaining: 10,
+      });
   });
 
   it('checks both ip and fingerprint limiters', async () => {

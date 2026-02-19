@@ -63,7 +63,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         active: body.active ?? true,
         visible: body.visible ?? true,
         bookable: body.bookable ?? true,
-        ...(body.displayOrder !== undefined ? { displayOrder: body.displayOrder } : {}),
+        ...(body.displayOrder !== undefined
+          ? { displayOrder: body.displayOrder }
+          : {}),
       });
 
       await recordAdminAuditEvent({

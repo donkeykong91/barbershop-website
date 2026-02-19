@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
   useEffect,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type ReactNode,
 } from 'react';
 
 type INavbarProps = {
@@ -102,7 +102,7 @@ const NavbarTwoColumns = (props: INavbarProps) => {
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
-            className="ml-auto flex h-full w-full max-w-sm flex-col bg-white p-5 shadow-xl"
+            className="ml-auto flex size-full max-w-sm flex-col bg-white p-5 shadow-xl"
             onClick={(event) => event.stopPropagation()}
             onKeyDown={onPanelKeyDown}
           >

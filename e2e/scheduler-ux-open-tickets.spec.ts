@@ -109,7 +109,7 @@ test('UX-031: footer nav wraps at mobile widths without horizontal page overflow
 test('UX-032: main page has no horizontal overflow at 390/393 mobile zoom-stress checkpoints', async ({
   page,
 }) => {
-  for (const width of [390, 393]) {
+  const assertNoOverflowAtWidth = async (width: number) => {
     await page.setViewportSize({ width, height: 852 });
     await page.goto('/#book', { waitUntil: 'domcontentloaded' });
 
@@ -140,5 +140,8 @@ test('UX-032: main page has no horizontal overflow at 390/393 mobile zoom-stress
     expect(overflowState.emailRightEdge!).toBeLessThanOrEqual(
       overflowState.clientWidth,
     );
-  }
+  };
+
+  await assertNoOverflowAtWidth(390);
+  await assertNoOverflowAtWidth(393);
 });

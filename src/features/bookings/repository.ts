@@ -566,7 +566,9 @@ const listBookings = async (
   }
 
   if (filters.status) {
-    const statusVariants = STATUS_FILTER_VARIANTS[filters.status] ?? [filters.status];
+    const statusVariants = STATUS_FILTER_VARIANTS[filters.status] ?? [
+      filters.status,
+    ];
     clauses.push(`b.status IN (${statusVariants.map(() => '?').join(',')})`);
     params.push(...statusVariants);
   }

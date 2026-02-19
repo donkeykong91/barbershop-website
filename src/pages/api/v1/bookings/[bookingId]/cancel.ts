@@ -77,8 +77,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const accessToken = getBookingAccessToken(req);
   const bodyToken = typeof req.body?.token === 'string' ? req.body.token : '';
 
-  const hasValidActionToken =
-    Boolean(bodyToken && (await verifyActionToken(bookingId, 'cancel', bodyToken)));
+  const hasValidActionToken = Boolean(
+    bodyToken && (await verifyActionToken(bookingId, 'cancel', bodyToken)),
+  );
   const hasValidAccessToken =
     (accessToken && (await verifyBookingAccessToken(bookingId, accessToken))) ||
     hasValidActionToken;

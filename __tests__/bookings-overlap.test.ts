@@ -1,8 +1,7 @@
 import { createBooking } from '../src/features/bookings/repository';
-
 import * as bookingRepo from '../src/features/bookings/repository';
-import * as db from '../src/lib/db/sqlite';
 import * as servicesRepo from '../src/features/services/repository';
+import * as db from '../src/lib/db/sqlite';
 
 jest.mock('../src/lib/db/sqlite', () => ({
   queryOne: jest.fn(),

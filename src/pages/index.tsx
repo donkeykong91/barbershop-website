@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
+import { Base } from '../components/templates/Base';
 import type { Service } from '../features/services/types';
 import type { StaffMember } from '../features/staff/types';
-import { Base } from '../components/templates/Base';
 
 const Index = () => {
   const [services, setServices] = useState<Service[]>([]);

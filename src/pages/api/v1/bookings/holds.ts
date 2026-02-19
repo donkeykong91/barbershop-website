@@ -37,19 +37,31 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           error.message === 'INVALID_SERVICE' ||
           error.message === 'INVALID_STAFF'
         ) {
+          let validationMessage = 'staffId is invalid or inactive';
+
+          switch (error.message) {
+            case 'INVALID_SLOT_START_FORMAT':
+              validationMessage =
+                'slotStart must be ISO-8601 datetime with timezone';
+              break;
+            case 'INVALID_SLOT_END_FORMAT':
+              validationMessage =
+                'slotEnd must be ISO-8601 datetime with timezone';
+              break;
+            case 'INVALID_SLOT_RANGE':
+              validationMessage = 'slotStart must be before slotEnd';
+              break;
+            case 'INVALID_SERVICE':
+              validationMessage = 'serviceId is invalid or not available';
+              break;
+            default:
+              validationMessage = 'staffId is invalid or inactive';
+          }
+
           res.status(400).json({
             error: {
               code: 'VALIDATION_ERROR',
-              message:
-                error.message === 'INVALID_SLOT_START_FORMAT'
-                  ? 'slotStart must be ISO-8601 datetime with timezone'
-                  : error.message === 'INVALID_SLOT_END_FORMAT'
-                    ? 'slotEnd must be ISO-8601 datetime with timezone'
-                    : error.message === 'INVALID_SLOT_RANGE'
-                      ? 'slotStart must be before slotEnd'
-                      : error.message === 'INVALID_SERVICE'
-                        ? 'serviceId is invalid or not available'
-                        : 'staffId is invalid or inactive',
+              message: validationMessage,
             },
           });
           return;
@@ -59,7 +71,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           res.status(429).json({
             error: {
               code: 'RATE_LIMIT_EXCEEDED',
-              message: 'Too many active holds for this fingerprint. Please try again later.',
+              message:
+                'Too many active holds for this fingerprint. Please try again later.',
             },
           });
           return;
@@ -104,7 +117,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const result = await releaseHold(holdId);
     if (!result?.deleted) {
       res.status(404).json({
-        error: { code: 'HOLD_NOT_FOUND', message: 'Hold not found or already expired' },
+        error: {
+          code: 'HOLD_NOT_FOUND',
+          message: 'Hold not found or already expired',
+        },
       });
       return;
     }

@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import handler from './holds';
 import {
   createHold,
   refreshHold,
   releaseHold,
 } from '../../../../features/bookings/v2Repository';
 import { getClientFingerprint } from '../../../../lib/security/clientFingerprint';
+import handler from './holds';
 
 jest.mock('../../../../features/bookings/v2Repository', () => ({
   createHold: jest.fn(),
@@ -91,7 +91,10 @@ describe('holds endpoint', () => {
     const res = createRes();
     await handler(req, res);
 
-    expect(refreshHoldMock).toHaveBeenCalledWith('missing-hold', 'fingerprint-1');
+    expect(refreshHoldMock).toHaveBeenCalledWith(
+      'missing-hold',
+      'fingerprint-1',
+    );
     expect(res.statusCode).toBe(404);
     expect(res.body.error.code).toBe('HOLD_NOT_FOUND');
   });
@@ -116,7 +119,10 @@ describe('holds endpoint', () => {
   });
 
   it('creates and validates hold payload for POST path', async () => {
-    createHoldMock.mockResolvedValueOnce({ id: 'hold-1', expiresAt: '2026-01-01T00:00:00.000Z' });
+    createHoldMock.mockResolvedValueOnce({
+      id: 'hold-1',
+      expiresAt: '2026-01-01T00:00:00.000Z',
+    });
 
     const req = {
       method: 'POST',

@@ -1,5 +1,5 @@
-import { listBookings } from './repository';
 import { queryAll } from '../../lib/db/sqlite';
+import { listBookings } from './repository';
 
 jest.mock('../../lib/db/sqlite', () => ({
   queryAll: jest.fn(),
@@ -21,9 +21,14 @@ describe('listBookings status filter normalization', () => {
     await listBookings({ status: 'confirmed', limit: 10 });
 
     expect(queryAll).toHaveBeenCalledTimes(1);
-    const [sql, args] = (queryAll as jest.Mock).mock.calls[0] as [string, Array<string | number>];
+    const [sql, args] = (queryAll as jest.Mock).mock.calls[0] as [
+      string,
+      Array<string | number>,
+    ];
 
     expect(sql).toContain('b.status IN');
-    expect(args).toEqual(expect.arrayContaining(['confirmed', 'CONFIRMED', 'BOOKED']));
+    expect(args).toEqual(
+      expect.arrayContaining(['confirmed', 'CONFIRMED', 'BOOKED']),
+    );
   });
 });

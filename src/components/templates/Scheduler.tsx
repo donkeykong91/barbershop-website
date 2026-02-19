@@ -2,9 +2,9 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { Section } from '@/components/ui/layout/Section';
 import type { Service } from '@/features/services/types';
 import type { StaffMember } from '@/features/staff/types';
-import { Section } from '@/components/ui/layout/Section';
 import { AppConfig } from '@/utils/AppConfig';
 
 type SchedulerProps = {
@@ -263,9 +263,9 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
     null,
   );
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  const [expandedDayKeys, setExpandedDayKeys] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [expandedDayKeys, setExpandedDayKeys] = useState<
+    Record<string, boolean>
+  >({});
   const [availabilityStatus, setAvailabilityStatus] =
     useState<AvailabilityStatus>('idle');
   const [availabilityErrorMessage, setAvailabilityErrorMessage] = useState('');
@@ -698,12 +698,44 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
     });
   };
 
+  const continueRestoredDraft = () => {
+    setStep(pendingRestoredStep ?? 1);
+    setPendingRestoredStep(null);
+    setRestoreNotice('Restored your in-progress booking draft.');
+  };
+
+  const releaseHold = async (targetHoldId: string) => {
+    try {
+      await fetch(
+        `/api/v1/bookings/holds?holdId=${encodeURIComponent(targetHoldId)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+    } catch {
+      // best-effort cleanup
+    }
+  };
+
+  const clearHold = async () => {
+    if (!holdId) {
+      return;
+    }
+    const target = holdId;
+    setHoldId('');
+    setHoldExpiresAt('');
+    setHoldSlotKey('');
+    await releaseHold(target);
+  };
+
   const clearDraft = () => {
     if (typeof window !== 'undefined') {
       window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
       window.sessionStorage.removeItem(RESTORED_DRAFT_MARKER_KEY);
     }
-    void clearHold();
+    clearHold().catch(() => {
+      // best-effort cleanup
+    });
     setSelectedServiceId(selectableServices[0]?.id ?? '');
     setSelectedStaffId('any');
     setRangeDays(7);
@@ -735,33 +767,6 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
     setHoldSlotKey('');
   };
 
-  const continueRestoredDraft = () => {
-    setStep(pendingRestoredStep ?? 1);
-    setPendingRestoredStep(null);
-    setRestoreNotice('Restored your in-progress booking draft.');
-  };
-
-  const releaseHold = async (targetHoldId: string) => {
-    try {
-      await fetch(`/api/v1/bookings/holds?holdId=${encodeURIComponent(targetHoldId)}`, {
-        method: 'DELETE',
-      });
-    } catch {
-      // best-effort cleanup
-    }
-  };
-
-  const clearHold = async () => {
-    if (!holdId) {
-      return;
-    }
-    const target = holdId;
-    setHoldId('');
-    setHoldExpiresAt('');
-    setHoldSlotKey('');
-    await releaseHold(target);
-  };
-
   const ensureHold = async (slot: AvailabilitySlot) => {
     if (!selectedService) {
       return;
@@ -784,7 +789,9 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
 
         const payload = await response.json();
         if (!response.ok) {
-          throw new Error(payload?.error?.message ?? 'Unable to refresh slot hold.');
+          throw new Error(
+            payload?.error?.message ?? 'Unable to refresh slot hold.',
+          );
         }
 
         setHoldExpiresAt(payload?.data?.expiresAt ?? '');
@@ -811,7 +818,9 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload?.error?.message ?? 'Unable to reserve slot hold.');
+        throw new Error(
+          payload?.error?.message ?? 'Unable to reserve slot hold.',
+        );
       }
       const nextId = payload?.data?.id;
       if (typeof nextId === 'string' && nextId.length > 0) {
@@ -957,7 +966,9 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
 
   useEffect(() => {
     if (!selectedSlot) {
-      void clearHold();
+      clearHold().catch(() => {
+        // best-effort cleanup
+      });
       return;
     }
 
@@ -965,7 +976,9 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
       return;
     }
 
-    void ensureHold(selectedSlot);
+    ensureHold(selectedSlot).catch(() => {
+      // best-effort hold refresh
+    });
   }, [selectedSlot, selectedService?.id]);
 
   useEffect(() => {
@@ -1111,7 +1124,9 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
         setHoldId('');
         setHoldSlotKey('');
         setSlotConflictAlternatives([]);
-        void ensureHold(selectedSlot);
+        ensureHold(selectedSlot).catch(() => {
+          // best-effort hold refresh
+        });
         setApiError(
           bookingPayload.error?.message ??
             'Your slot hold expired. Please confirm again.',
@@ -1127,7 +1142,9 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
         setHoldId('');
         setHoldSlotKey('');
         setSlotConflictAlternatives([]);
-        void ensureHold(selectedSlot);
+        ensureHold(selectedSlot).catch(() => {
+          // best-effort hold refresh
+        });
         setApiError(
           bookingPayload.error?.message ??
             'Your slot hold was not valid. Please confirm again.',
@@ -1614,7 +1631,8 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
                   const visibleSlots = expanded
                     ? group.slotsForDay
                     : group.slotsForDay.slice(0, 6);
-                  const hasMore = group.slotsForDay.length > visibleSlots.length;
+                  const hasMore =
+                    group.slotsForDay.length > visibleSlots.length;
 
                   return (
                     <div key={group.dayKey} className="space-y-2">
@@ -1647,7 +1665,9 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
                               onClick={() => {
                                 setSelectedSlot(slot);
                                 setFocusedSlotIndex(slotIndex);
-                                setStep((currentStep) => Math.max(currentStep, 3));
+                                setStep((currentStep) =>
+                                  Math.max(currentStep, 3),
+                                );
                               }}
                               onFocus={() => setFocusedSlotIndex(slotIndex)}
                               className={`${ctaSecondaryClass} text-left ${
@@ -1690,7 +1710,8 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
                             }))
                           }
                         >
-                          Show more times ({group.slotsForDay.length - visibleSlots.length} more)
+                          Show more times (
+                          {group.slotsForDay.length - visibleSlots.length} more)
                         </button>
                       ) : null}
                     </div>

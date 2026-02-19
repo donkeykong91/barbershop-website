@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
-import { getServiceById } from '../services/repository';
 import { queryAll, queryOne, run } from '../../lib/db/sqlite';
+import { getServiceById } from '../services/repository';
 
 const parseIntEnv = (value: string | undefined, fallback: number): number => {
   const parsed = Number.parseInt(value ?? '', 10);
@@ -23,7 +23,8 @@ const HOLD_RATE_LIMIT_PER_FINGERPRINT = parseIntEnv(
   20,
 );
 
-const ISO_DATETIME_OFFSET_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const ISO_DATETIME_OFFSET_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 const ensureIsoDateTime = (value: string, fieldName: string): string => {
   const candidate = value.trim();
@@ -123,7 +124,10 @@ const createHold = async (input: {
     [input.customerFingerprint, nowIso],
   );
 
-  if (Number(activeHoldCount?.activeHoldCount ?? 0) >= HOLD_RATE_LIMIT_PER_FINGERPRINT) {
+  if (
+    Number(activeHoldCount?.activeHoldCount ?? 0) >=
+    HOLD_RATE_LIMIT_PER_FINGERPRINT
+  ) {
     throw new Error('HOLD_RATE_LIMIT_EXCEEDED');
   }
 

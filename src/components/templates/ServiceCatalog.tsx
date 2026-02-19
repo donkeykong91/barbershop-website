@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
-import type { Service } from '@/features/services/types';
 import { Section } from '@/components/ui/layout/Section';
+import type { Service } from '@/features/services/types';
 
 type ServiceCatalogProps = {
   services: Service[];

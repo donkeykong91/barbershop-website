@@ -1,8 +1,14 @@
 /* eslint-disable simple-import-sort/imports */
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 
-import { Scheduler } from './Scheduler';
 import { AppConfig } from '@/utils/AppConfig';
+import { Scheduler } from './Scheduler';
 
 const services = [
   {
@@ -149,7 +155,9 @@ describe('Scheduler UX regressions', () => {
       screen.getByRole('button', { name: /find available slots/i }),
     );
 
-    fireEvent.click(await screen.findByRole('radio', { name: /staff: kevin/i }));
+    fireEvent.click(
+      await screen.findByRole('radio', { name: /staff: kevin/i }),
+    );
 
     expect(screen.getByText(/step 3 of 5/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
@@ -476,7 +484,8 @@ describe('Scheduler UX regressions', () => {
     await screen.findByText(/that time was just taken/i);
     fireEvent.click(screen.getByRole('button', { name: /9:30 am-10:00 am/i }));
 
-    expect(screen.queryByText(/that time was just taken/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/that time was just taken/i),
+    ).not.toBeInTheDocument();
   });
 });
-
