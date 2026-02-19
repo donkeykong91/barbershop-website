@@ -2,3 +2,9 @@ node_modules
 out
 scripts
 tmp-qa-pass.js
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__
+e2e

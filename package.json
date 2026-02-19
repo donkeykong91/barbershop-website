@@ -10,7 +10,7 @@
     "clean": "rimraf .next .swc out",
     "lint": "next lint",
     "format": "next lint --fix && prettier '**/*.{json,yaml}' --write --ignore-path .gitignore",
-    "check-types": "tsc --noEmit --pretty",
+    "check-types": "tsc --noEmit --pretty -p tsconfig.typecheck.json",
     "typecheck": "npm run check-types",
     "test": "npm run test:unit",
     "test:unit": "jest --runInBand",
@@ -36,7 +36,6 @@
   "devDependencies": {
     "@next/bundle-analyzer": "^14.1.0",
     "@next/swc-wasm-nodejs": "^14.1.0",
-    "@next/swc-win32-x64-msvc": "^14.1.0",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -73,6 +72,9 @@
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.4.6",
     "typescript": "^5.3.3"
+  },
+  "optionalDependencies": {
+    "@next/swc-win32-x64-msvc": "^14.1.0"
   },
   "license": "ISC"
 }
