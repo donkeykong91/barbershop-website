@@ -49,7 +49,10 @@ const parseIsoDate = (value: string): Date | null => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const getRateLimitConfig = (key: 'BOOKING_CREATE_MAX' | 'BOOKING_CREATE_WINDOW_MS', fallback: number) => {
+const getRateLimitConfig = (
+  key: 'BOOKING_CREATE_MAX' | 'BOOKING_CREATE_WINDOW_MS',
+  fallback: number,
+) => {
   const configured = Number.parseInt(process.env[key] ?? '', 10);
   if (Number.isNaN(configured) || configured < 1) {
     return fallback;
@@ -338,13 +341,17 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       res.status(409).json({
         error: {
           code: 'HOLD_REQUIRED',
-          message: 'A valid review hold is required. Please reselect your slot.',
+          message:
+            'A valid review hold is required. Please reselect your slot.',
         },
       });
       return;
     }
 
-    const validHold = await getValidHold(body.holdId as string, clientFingerprint);
+    const validHold = await getValidHold(
+      body.holdId as string,
+      clientFingerprint,
+    );
     if (!validHold) {
       res.status(409).json({
         error: {

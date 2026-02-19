@@ -3,3 +3,31 @@
 @tailwind components;
 
 @tailwind utilities;
+
+@media (prefers-reduced-motion: no-preference) {
+  html:focus-within {
+    scroll-behavior: smooth;
+  }
+
+  .step-panel {
+    animation: step-fade-slide 0.2s ease-out;
+  }
+}
+
+.anchor-section,
+#services,
+#staff {
+  scroll-margin-top: 6.5rem;
+}
+
+@keyframes step-fade-slide {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

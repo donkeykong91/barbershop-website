@@ -132,6 +132,29 @@ Find more components in our [premium NextJS themes](https://creativedesignsguru.
 ### Requirements
 
 - Node.js and npm
+- Turso database (libSQL URL + auth token)
+
+### Kevin Barbershop backend setup
+
+1. Copy env template and fill values:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Run schema + seed against Turso:
+
+```bash
+npm run db:setup
+```
+
+3. For production deployment on Vercel, add:
+
+- `TURSO_DATABASE_URL`
+- `TURSO_AUTH_TOKEN`
+- `ADMIN_API_KEY`
+
+See `docs/turso-migration.md` for full Turso provisioning, Vercel env commands, and rollback steps.
 
 ### Getting started
 
@@ -194,7 +217,12 @@ Here is the layer:
 - use component blocks from `src/templates/*`
 - use atomic components from `src/*`
 
-### Deploy to production
+### Operations runbooks
+
+- Incident response: `docs/incident-response.md`
+- Data retention policy: `docs/data-retention.md`
+
+## Deploy to production
 
 You can see the results locally in production mode with:
 

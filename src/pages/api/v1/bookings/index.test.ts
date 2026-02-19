@@ -108,7 +108,11 @@ describe('POST /api/v1/bookings', () => {
     jest.clearAllMocks();
     checkRateLimit
       .mockResolvedValueOnce({ allowed: true, retryAfterSec: 60, remaining: 7 })
-      .mockResolvedValueOnce({ allowed: true, retryAfterSec: 60, remaining: 7 });
+      .mockResolvedValueOnce({
+        allowed: true,
+        retryAfterSec: 60,
+        remaining: 7,
+      });
 
     getServiceById.mockResolvedValue({
       id: 'svc-1',
@@ -129,15 +133,13 @@ describe('POST /api/v1/bookings', () => {
   });
 
   it('returns SLOT_TAKEN with alternatives payload on conflict', async () => {
-    listAvailability
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        {
-          slotStart: '2026-03-02T17:30:00.000Z',
-          slotEnd: '2026-03-02T18:00:00.000Z',
-          staffId: 'stf-1',
-        },
-      ]);
+    listAvailability.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        slotStart: '2026-03-02T17:30:00.000Z',
+        slotEnd: '2026-03-02T18:00:00.000Z',
+        staffId: 'stf-1',
+      },
+    ]);
 
     const req = baseReq();
     const res = createRes();

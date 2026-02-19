@@ -1,7 +1,7 @@
 import { queryAll } from '../../lib/db/sqlite';
 import { listStaff } from '../staff/repository';
-import { listBusinessHours } from './businessHoursRepository';
 import { listBlackoutsInRange } from './blackoutRepository';
+import { listBusinessHours } from './businessHoursRepository';
 
 type AvailabilitySlot = {
   slotStart: string;
@@ -38,7 +38,14 @@ type ZonedDateParts = {
   minute: number;
 };
 
-const ACTIVE_BLOCKING_STATUSES = ['confirmed', 'completed', 'no_show'];
+const ACTIVE_BLOCKING_STATUSES = [
+  'confirmed',
+  'completed',
+  'no_show',
+  'BOOKED',
+  'COMPLETED',
+  'NO_SHOW',
+];
 const SLOT_GRANULARITY_MIN = 15;
 
 const toMinutes = (hhmm: string): number => {
@@ -235,7 +242,10 @@ const listAvailability = async ({
       `,
     [...ACTIVE_BLOCKING_STATUSES, from.toISOString(), to.toISOString()],
   );
-  const blackouts = await listBlackoutsInRange(from.toISOString(), to.toISOString());
+  const blackouts = await listBlackoutsInRange(
+    from.toISOString(),
+    to.toISOString(),
+  );
 
   const businessHoursByDay = new Map(
     (await listBusinessHours()).map((entry) => [entry.dayOfWeek, entry]),
@@ -310,8 +320,13 @@ const listAvailability = async ({
             const overlapsBlackout = blackouts.some((blackout) => {
               const blockedStart = new Date(blackout.starts_at);
               const blockedEnd = new Date(blackout.ends_at);
-              const appliesToStaff = blackout.scope === 'shop' || blackout.staff_id === member.id;
-              return appliesToStaff && slotStart < blockedEnd && slotEnd > blockedStart;
+              const appliesToStaff =
+                blackout.scope === 'shop' || blackout.staff_id === member.id;
+              return (
+                appliesToStaff &&
+                slotStart < blockedEnd &&
+                slotEnd > blockedStart
+              );
             });
 
             if (!overlapsExisting && !overlapsBlackout) {

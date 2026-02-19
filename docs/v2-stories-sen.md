@@ -79,6 +79,39 @@ Ship the next set of production-ready stories that extend the current booking ex
 
 ## Validation Log (to be kept current)
 
+- Pass date/time: 2026-02-13 (America/Los_Angeles)
 - Jest command: `npm run test:jest -- --runInBand --silent`
+  - Result: **PASS**
+  - Suites: **17 passed, 0 failed**
+  - Tests: **50 passed, 0 failed**
 - Playwright command(s): `npm run test:playwright -- e2e/scheduler-a11y.spec.ts`
-- Result summary: pending execution in this pass.
+  - Result: **PASS**
+  - Specs: **13 passed, 0 failed**
+- Result summary: V2 validation gate commands for this pass are green.
+
+---
+
+## Stabilization Addendum (2026-02-14, Sen)
+
+- **Status transition:** `STABILIZATION_IN_PROGRESS` → `STABILIZATION_PASS`
+- **Scope:** Reliability/security regression stabilization before resuming story completion.
+- **Fixes shipped in this pass:**
+  1. Added Playwright `webServer` bootstrap in `playwright.config.ts` to eliminate connection-refused flakes when local server is not pre-started.
+  2. Updated stale E2E flow assumptions after slot auto-advance (removed outdated `Continue` clicks; added Step-3 assertions and required-consent path checks).
+  3. Hardened cancel endpoint unauthorized semantics (`401` when no accepted token source is present; `403` reserved for invalid/expired presented token).
+  4. Reduced Jest flake/noise around state-update timing in scheduler tests by wrapping state-triggering focus/timer operations in `act(...)`.
+- **Stabilization validation commands:**
+  - `npm run test:jest -- --runInBand --ci --silent` → ✅ 17 suites / 52 tests passed
+  - `npm run test:playwright -- --reporter=line` → ✅ 20/20 passed
+- **Next action:** Resume active story completion queue immediately after this stabilization checkpoint.
+
+## Story Completion Continuation (post-stabilization)
+
+- **Status:** `READY_FOR_STORY_EXECUTION` → `BLOCKED_PENDING_PRIORITY`
+- **Blocker:** V2 story checklist in this file is already fully checked; remaining story backlogs in repo are large legacy checklists (`docs/admin-stories.md`) without prioritized "next story" assignment for this execution cycle.
+- **Mitigation attempted:**
+  1. Scanned docs for open checklist items.
+  2. Confirmed no active V2 story remains unchecked in current execution brief.
+  3. Prepared to start the next highest-priority story immediately once PM assigns target story ID (or confirms first open item in `docs/admin-stories.md` should be taken).
+
+

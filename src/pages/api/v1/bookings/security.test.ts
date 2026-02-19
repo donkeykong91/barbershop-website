@@ -14,7 +14,9 @@ jest.mock('../../../../features/bookings/repository', () => ({
 
 jest.mock('../../../../features/bookings/v2Repository', () => ({
   verifyActionToken: jest.fn(),
+  consumeActionToken: jest.fn(),
   logBookingEvent: jest.fn(),
+  createActionToken: jest.fn(),
 }));
 
 jest.mock('../../../../lib/security/clientIp', () => ({
@@ -47,6 +49,13 @@ const { checkRateLimit } = jest.requireMock(
   '../../../../lib/security/rateLimit',
 ) as {
   checkRateLimit: jest.Mock;
+};
+
+const { consumeActionToken, verifyActionToken } = jest.requireMock(
+  '../../../../features/bookings/v2Repository',
+) as {
+  consumeActionToken: jest.Mock;
+  verifyActionToken: jest.Mock;
 };
 
 type MockRes = NextApiResponse & {
@@ -112,7 +121,7 @@ describe('booking protected endpoint hardening', () => {
     expect(getBookingByIdWithAccessToken).not.toHaveBeenCalled();
   });
 
-  it('rejects query-string token on cancel and confirmation endpoints', async () => {
+  it('rejects query-string access-token on cancel and confirmation endpoints', async () => {
     const cancelReq = createReq({
       method: 'POST',
       query: { bookingId: 'b-1', accessToken: 'leaky' },
@@ -121,7 +130,7 @@ describe('booking protected endpoint hardening', () => {
 
     await cancelHandler(cancelReq, cancelRes);
 
-    expect(cancelRes.statusCode).toBe(403);
+    expect(cancelRes.statusCode).toBe(401);
 
     const confirmationReq = createReq({
       method: 'GET',
@@ -133,6 +142,46 @@ describe('booking protected endpoint hardening', () => {
 
     expect(confirmationRes.statusCode).toBe(401);
     expect(verifyBookingAccessToken).not.toHaveBeenCalled();
+  });
+
+  it('rejects sensitive cancel action token in query string', async () => {
+    verifyActionToken.mockResolvedValue(true);
+
+    const cancelReq = createReq({
+      method: 'POST',
+      query: { bookingId: 'b-1', token: 'leaky' },
+      body: {},
+    });
+    const cancelRes = createRes();
+
+    await cancelHandler(cancelReq, cancelRes);
+
+    expect(cancelRes.statusCode).toBe(401);
+    expect(verifyActionToken).not.toHaveBeenCalled();
+    expect(consumeActionToken).not.toHaveBeenCalled();
+  });
+
+  it('consumes valid cancel action token after successful idempotent or stateful cancel', async () => {
+    verifyBookingAccessToken.mockResolvedValue(false);
+    verifyActionToken.mockResolvedValue(true);
+    getBookingById.mockResolvedValue({
+      id: 'b-1',
+      status: 'confirmed',
+    });
+    cancelBooking.mockResolvedValue({ id: 'b-1', status: 'cancelled' });
+
+    const cancelReq = createReq({
+      method: 'POST',
+      query: { bookingId: 'b-1' },
+      body: { token: 'abc' },
+    });
+    const cancelRes = createRes();
+
+    await cancelHandler(cancelReq, cancelRes);
+
+    expect(consumeActionToken).toHaveBeenCalledWith('b-1', 'cancel');
+    expect(cancelRes.statusCode).toBe(200);
+    expect(cancelRes.body.data.status).toBe('cancelled');
   });
 
   it('throttles cancel/confirmation brute-force attempts with retry-after', async () => {

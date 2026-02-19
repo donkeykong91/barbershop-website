@@ -1,7 +1,13 @@
 import { AppConfig } from '../../utils/AppConfig';
 
-const REMINDER_HOURS_DEFAULT = Number.parseInt(process.env.REMINDER_OFFSET_HOURS ?? '24', 10);
-const NEAR_TERM_REMINDER_HOURS_DEFAULT = Number.parseInt(process.env.REMINDER_NEAR_TERM_OFFSET_HOURS ?? '2', 10);
+const REMINDER_HOURS_DEFAULT = Number.parseInt(
+  process.env.REMINDER_OFFSET_HOURS ?? '24',
+  10,
+);
+const NEAR_TERM_REMINDER_HOURS_DEFAULT = Number.parseInt(
+  process.env.REMINDER_NEAR_TERM_OFFSET_HOURS ?? '2',
+  10,
+);
 
 const templateVersion = 'v2.0.0';
 
@@ -30,24 +36,31 @@ const getReminderSendTime = (slotStartIso: string, now = Date.now()) => {
   return new Date(slotMs - offset).toISOString();
 };
 
-const processReminderWindow = async (windowStartIso: string, windowEndIso: string) => {
-  const { listReminderCandidates, logBookingEvent } = await import('./v2Repository');
+const processReminderWindow = async (
+  windowStartIso: string,
+  windowEndIso: string,
+) => {
+  const { listReminderCandidates, logBookingEvent } = await import(
+    './v2Repository'
+  );
   const candidates = await listReminderCandidates(windowStartIso, windowEndIso);
   let sent = 0;
 
   // placeholder queue hook
-  await Promise.all(candidates.map(async (row) => {
-    sent += 1;
-    await logBookingEvent(row.id, 'booking_reminder_queued', {
-      channel: ['email', 'sms'],
-      templateVersion,
-      emailPreview: buildReminderMessage({
-        serviceName: row.service_name,
-        staffName: row.staff_name,
-        slotStart: row.slot_start,
-      }).slice(0, 120),
-    });
-  }));
+  await Promise.all(
+    candidates.map(async (row) => {
+      sent += 1;
+      await logBookingEvent(row.id, 'booking_reminder_queued', {
+        channel: ['email', 'sms'],
+        templateVersion,
+        emailPreview: buildReminderMessage({
+          serviceName: row.service_name,
+          staffName: row.staff_name,
+          slotStart: row.slot_start,
+        }).slice(0, 120),
+      });
+    }),
+  );
 
   return { sent, failed: 0 };
 };

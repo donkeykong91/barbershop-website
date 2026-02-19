@@ -5,10 +5,17 @@ import {
   getBookingById,
   verifyBookingAccessToken,
 } from '../../../../../features/bookings/repository';
-import { logBookingEvent, verifyActionToken } from '../../../../../features/bookings/v2Repository';
+import {
+  consumeActionToken,
+  logBookingEvent,
+  verifyActionToken,
+} from '../../../../../features/bookings/v2Repository';
 import { getBookingAccessToken } from '../../../../../lib/security/bookingAccessToken';
 import { getClientIp } from '../../../../../lib/security/clientIp';
 import { checkRateLimit } from '../../../../../lib/security/rateLimit';
+
+const normalizeStatus = (status: unknown): string =>
+  typeof status === 'string' ? status.trim().toLowerCase() : '';
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'POST') {
@@ -69,14 +76,25 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const accessToken = getBookingAccessToken(req);
   const bodyToken = typeof req.body?.token === 'string' ? req.body.token : '';
-  const queryToken = typeof req.query.token === 'string' ? req.query.token : '';
 
+  const hasValidActionToken =
+    Boolean(bodyToken && (await verifyActionToken(bookingId, 'cancel', bodyToken)));
   const hasValidAccessToken =
     (accessToken && (await verifyBookingAccessToken(bookingId, accessToken))) ||
-    (bodyToken && (await verifyActionToken(bookingId, 'cancel', bodyToken))) ||
-    (queryToken && (await verifyActionToken(bookingId, 'cancel', queryToken)));
+    hasValidActionToken;
 
   if (!hasValidAccessToken) {
+    if (!accessToken && !bodyToken) {
+      res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message:
+            'Booking access token is required (x-booking-access-token header, Bearer token, or cancel token in request body).',
+        },
+      });
+      return;
+    }
+
     res.status(403).json({
       error: {
         code: 'FORBIDDEN',
@@ -86,10 +104,27 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return;
   }
 
+  const usedActionToken = hasValidActionToken;
+
   try {
     const existing = await getBookingById(bookingId);
-    if (existing?.status === 'cancelled') {
-      res.status(200).json({ data: { id: bookingId, status: 'cancelled', idempotent: true } });
+    if (usedActionToken) {
+      const consumed = await consumeActionToken(bookingId, 'cancel');
+      if (!consumed) {
+        res.status(403).json({
+          error: {
+            code: 'INVALID_OR_EXPIRED_TOKEN',
+            message: 'Invalid or expired cancel token',
+          },
+        });
+        return;
+      }
+    }
+
+    if (normalizeStatus(existing?.status) === 'cancelled') {
+      res.status(200).json({
+        data: { id: bookingId, status: 'cancelled', idempotent: true },
+      });
       return;
     }
 

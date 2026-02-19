@@ -7,8 +7,14 @@ import { queryOne, run } from '../db/sqlite';
 import { getClientIp } from './clientIp';
 import { checkRateLimit } from './rateLimit';
 
-const IDLE_MIN = Number.parseInt(process.env.ADMIN_SESSION_IDLE_MIN ?? '30', 10);
-const ABS_MIN = Number.parseInt(process.env.ADMIN_SESSION_ABSOLUTE_MIN ?? '480', 10);
+const IDLE_MIN = Number.parseInt(
+  process.env.ADMIN_SESSION_IDLE_MIN ?? '30',
+  10,
+);
+const ABS_MIN = Number.parseInt(
+  process.env.ADMIN_SESSION_ABSOLUTE_MIN ?? '480',
+  10,
+);
 
 const getConfiguredAdminKey = () => {
   const configured = process.env.ADMIN_API_KEY?.trim() ?? '';
@@ -16,7 +22,8 @@ const getConfiguredAdminKey = () => {
   return configured;
 };
 
-const hash = (value: string) => crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+const hash = (value: string) =>
+  crypto.createHash('sha256').update(value, 'utf8').digest('hex');
 
 const timingSafeStringEqual = (a: string, b: string): boolean => {
   const aBuffer = Buffer.from(a, 'utf8');
@@ -56,18 +63,33 @@ const createAdminSession = async (res: NextApiResponse) => {
 const clearAdminSession = async (req: NextApiRequest, res: NextApiResponse) => {
   const sessionSecret = parseCookie(req, 'kb_admin_session');
   if (sessionSecret) {
-    await run('UPDATE admin_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE session_secret_hash = ?', [hash(sessionSecret)]);
+    await run(
+      'UPDATE admin_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE session_secret_hash = ?',
+      [hash(sessionSecret)],
+    );
   }
-  res.setHeader('Set-Cookie', 'kb_admin_session=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0');
+  res.setHeader(
+    'Set-Cookie',
+    'kb_admin_session=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0',
+  );
 };
 
-const requireAdminApiKey = async (req: NextApiRequest, res: NextApiResponse): Promise<boolean> => {
+const requireAdminApiKey = async (
+  req: NextApiRequest,
+  res: NextApiResponse,
+): Promise<boolean> => {
   const clientIp = getClientIp(req);
   const rateLimit = await checkRateLimit(`admin:auth:${clientIp}`, 20, 60_000);
   res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
   if (!rateLimit.allowed) {
     res.setHeader('Retry-After', rateLimit.retryAfterSec.toString());
-    res.status(429).json({ error: { code: 'RATE_LIMITED', message: 'Too many admin authentication attempts. Please try again shortly.' } });
+    res.status(429).json({
+      error: {
+        code: 'RATE_LIMITED',
+        message:
+          'Too many admin authentication attempts. Please try again shortly.',
+      },
+    });
     return false;
   }
 
@@ -77,22 +99,40 @@ const requireAdminApiKey = async (req: NextApiRequest, res: NextApiResponse): Pr
       `SELECT id, expires_at, absolute_expires_at, revoked_at FROM admin_sessions WHERE session_secret_hash = ? LIMIT 1`,
       [hash(sessionSecret)],
     );
-    if (row && !row.revoked_at && new Date(row.expires_at).getTime() > Date.now() && new Date(row.absolute_expires_at).getTime() > Date.now()) {
-      await run('UPDATE admin_sessions SET last_seen_at = CURRENT_TIMESTAMP, expires_at = ? WHERE id = ?', [new Date(Date.now() + IDLE_MIN * 60_000).toISOString(), row.id]);
+    if (
+      row &&
+      !row.revoked_at &&
+      new Date(row.expires_at).getTime() > Date.now() &&
+      new Date(row.absolute_expires_at).getTime() > Date.now()
+    ) {
+      await run(
+        'UPDATE admin_sessions SET last_seen_at = CURRENT_TIMESTAMP, expires_at = ? WHERE id = ?',
+        [new Date(Date.now() + IDLE_MIN * 60_000).toISOString(), row.id],
+      );
       return true;
     }
   }
 
   const configured = getConfiguredAdminKey();
   if (!configured) {
-    res.status(503).json({ error: { code: 'ADMIN_NOT_CONFIGURED', message: 'Admin API key is not configured' } });
+    res.status(503).json({
+      error: {
+        code: 'ADMIN_NOT_CONFIGURED',
+        message: 'Admin API key is not configured',
+      },
+    });
     return false;
   }
 
   const provided = req.headers['x-admin-key'];
   const value = Array.isArray(provided) ? provided[0] : provided;
   if (!value || !timingSafeStringEqual(value, configured)) {
-    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Valid admin session or x-admin-key header is required' } });
+    res.status(401).json({
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Valid admin session or x-admin-key header is required',
+      },
+    });
     return false;
   }
 

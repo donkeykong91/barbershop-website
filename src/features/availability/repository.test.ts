@@ -76,7 +76,13 @@ describe('availability repository time bounds', () => {
       staffId: 'stf_kevin',
     });
 
-    expect(slots.some((slot) => slot.slotStart >= '2026-02-16T17:00:00.000Z' && slot.slotStart < '2026-02-16T18:00:00.000Z')).toBe(false);
+    expect(
+      slots.some(
+        (slot) =>
+          slot.slotStart >= '2026-02-16T17:00:00.000Z' &&
+          slot.slotStart < '2026-02-16T18:00:00.000Z',
+      ),
+    ).toBe(false);
   });
 
   it('generates daily slots inside local 9:00 AM–5:00 PM business hours', async () => {
@@ -138,5 +144,50 @@ describe('availability repository time bounds', () => {
 
     expect(allStartMinutes.every((minute) => minute >= 9 * 60)).toBe(true);
     expect(allEndMinutes.every((minute) => minute <= 17 * 60)).toBe(true);
+  });
+
+  it('treats uppercase blocking statuses from admin writes as occupied', async () => {
+    queryAll.mockReset();
+    listStaff.mockResolvedValue([{ id: 'stf_kevin', active: true }]);
+    listBusinessHours.mockResolvedValue(
+      Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        dayOfWeek,
+        openTimeLocal: '09:00',
+        closeTimeLocal: '17:00',
+        timezone: 'America/Los_Angeles',
+        isOpen: true,
+      })),
+    );
+    queryAll
+      .mockResolvedValueOnce(
+        Array.from({ length: 7 }, (_, dayOfWeek) => ({
+          staff_id: 'stf_kevin',
+          day_of_week: dayOfWeek,
+          start_time_local: '00:00',
+          end_time_local: '23:59',
+          is_available: 1,
+        })),
+      )
+      .mockResolvedValueOnce([
+        {
+          staff_id: 'stf_kevin',
+          slot_start: '2026-02-16T20:00:00.000Z',
+          slot_end: '2026-02-16T20:30:00.000Z',
+          status: 'BOOKED',
+        },
+      ]);
+
+    listBlackoutsInRange.mockResolvedValue([]);
+
+    const slots = await listAvailability({
+      serviceDurationMin: 30,
+      fromIso: '2026-02-16T19:30:00.000Z',
+      toIso: '2026-02-16T21:00:00.000Z',
+      staffId: 'stf_kevin',
+    });
+
+    expect(
+      slots.find((slot) => slot.slotStart === '2026-02-16T20:00:00.000Z'),
+    ).toBeUndefined();
   });
 });

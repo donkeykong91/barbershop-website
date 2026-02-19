@@ -37,11 +37,25 @@ const createBlackout = async (input: BlackoutInput) => {
   await run(
     `INSERT INTO blackout_windows (id, scope, staff_id, starts_at, ends_at, reason, created_by)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, input.scope, input.staffId ?? null, input.startsAt, input.endsAt, input.reason ?? null, input.createdBy ?? null],
+    [
+      id,
+      input.scope,
+      input.staffId ?? null,
+      input.startsAt,
+      input.endsAt,
+      input.reason ?? null,
+      input.createdBy ?? null,
+    ],
   );
   return { id };
 };
 
-const deleteBlackout = async (id: string) => run('DELETE FROM blackout_windows WHERE id = ?', [id]);
+const deleteBlackout = async (id: string) =>
+  run('DELETE FROM blackout_windows WHERE id = ?', [id]);
 
-export { createBlackout, deleteBlackout, hasBookingOverlap, listBlackoutsInRange };
+export {
+  createBlackout,
+  deleteBlackout,
+  hasBookingOverlap,
+  listBlackoutsInRange,
+};

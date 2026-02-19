@@ -7,13 +7,20 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (!(await requireAdminApiKey(req, res))) return;
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
-    res.status(405).json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET is supported' } });
+    res.status(405).json({
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET is supported' },
+    });
     return;
   }
 
   const date = typeof req.query.date === 'string' ? req.query.date : '';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'date=YYYY-MM-DD is required' } });
+    res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'date=YYYY-MM-DD is required',
+      },
+    });
     return;
   }
 
@@ -34,19 +41,25 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   );
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="schedule-${date}.csv"`);
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="schedule-${date}.csv"`,
+  );
   res.write('time_range,customer_name,phone,service,staff,notes,status\n');
   rows.forEach((row) => {
-    const safe = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-    res.write([
-      safe(`${row.slot_start} - ${row.slot_end}`),
-      safe(`${row.first_name} ${row.last_name}`),
-      safe(row.phone),
-      safe(row.service_name),
-      safe(row.staff_name),
-      safe(row.notes ?? ''),
-      safe(row.status),
-    ].join(',') + '\n');
+    const safe = (value: unknown) =>
+      `"${String(value ?? '').replace(/"/g, '""')}"`;
+    res.write(
+      `${[
+        safe(`${row.slot_start} - ${row.slot_end}`),
+        safe(`${row.first_name} ${row.last_name}`),
+        safe(row.phone),
+        safe(row.service_name),
+        safe(row.staff_name),
+        safe(row.notes ?? ''),
+        safe(row.status),
+      ].join(',')}\n`,
+    );
   });
   res.end();
 };
