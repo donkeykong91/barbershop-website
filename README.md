@@ -1,12 +1,8 @@
-# Landing Page Template built with Next JS 14+, Tailwind CSS 3 and TypeScript [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40Ixartz)](https://twitter.com/ixartz)
+# Kevin's Barbershop Website
 
-<p align="center">
-  <a href="https://creativedesignsguru.com/demo/nextjs-landing-page/"><img src="public/assets/images/nextjs-landing-page-banner.png?raw=true" alt="Next js starter banner"></a>
-</p>
+Production website for Kevin's Barbershop, built with Next.js + TypeScript + Tailwind CSS.
 
-🚀 Landing Page theme written in Next.js, Tailwind CSS and TypeScript ⚡️ Made with developer experience first: Next.js, TypeScript, ESLint, Prettier, Husky, Lint-Staged, VSCode, Netlify, PostCSS, Tailwind CSS.
-
-Clone this project and use it to create your own [Next.js](https://nextjs.org) project. You can check a [Next js templates demo](https://creativedesignsguru.com/demo/nextjs-landing-page/).
+This repository started from a landing-page template and has been adapted for booking flows, admin integration, security hardening, and deployment workflows.
 
 ## Sponsors
 
@@ -158,11 +154,11 @@ See `docs/turso-migration.md` for full Turso provisioning, Vercel env commands, 
 
 ### Getting started
 
-Run the following command on your local environment (for example, in [Warp](https://go.warp.dev/nextjs-bp)):
+Run the following commands locally:
 
 ```
-git clone --depth=1 https://github.com/ixartz/Next-JS-Landing-Page-Starter-Template.git my-project-name
-cd my-project-name
+git clone git@github.com:donkeykong91/barbershop-website.git
+cd barbershop-website
 npm install
 ```
 
@@ -182,18 +178,14 @@ Open http://localhost:3000 with your favorite browser to see your project. For y
 │   └── assets
 │       └── images       # Image used by default template
 ├── src
-│   ├── background       # Atomic background component
-│   ├── button           # Atomic button component
-│   ├── cta              # Atomic cta component
-│   ├── feature          # Atomic feature component
-│   ├── footer           # Atomic footer component
-│   ├── hero             # Atomic hero component
-│   ├── layout           # Atomic layout component
-│   ├── navigation       # Atomic navigation component
-│   ├── pages            # Next JS pages
-│   ├── styles           # PostCSS style folder with Tailwind
-│   ├── templates        # Default template
-│   └── utils            # Utility folder
+│   ├── components
+│   │   ├── templates    # Page-level composition/templates
+│   │   └── ui           # Reusable UI components
+│   ├── features         # Domain/business features
+│   ├── lib              # Shared libraries/integration code
+│   ├── pages            # Next.js pages and API routes
+│   ├── styles           # Tailwind/PostCSS styling
+│   └── utils            # Shared utility helpers
 ├── tailwind.config.js   # Tailwind CSS configuration
 └── tsconfig.json        # TypeScript configuration
 ```
@@ -204,18 +196,18 @@ You can easily configure the theme. Please change the following file:
 
 - `public/apple-touch-icon.png`, `public/favicon.ico`, `public/favicon-16x16.png` and `public/favicon-32x32.png`: your favicon, you can generate from https://favicon.io/favicon-converter/
 - `src/styles/global.css`: your CSS file using Tailwind CSS
-- `utils/AppConfig.ts`: configuration file
-- `src/pages/index.tsx`: the index page of the theme that uses the `Base` component
-- `src/template/Base.tsx`: the `Base` component using component blocks
-- `src/templates/*`: the list of component blocks
-- `src/*`: other folders in src are the atomic components used by components blocks
+- `src/utils/AppConfig.ts`: configuration file
+- `src/pages/index.tsx`: homepage entry
+- `src/components/templates/*`: page-level template/composition components
+- `src/components/ui/*`: reusable UI building blocks
+- `src/features/*`: domain/business logic
 
-Here is the layer:
+Layering:
 
-- the entry point: `index.tsx` in `src/pages`
-- the `Base` template: `Base.tsx` in `src/templates`
-- use component blocks from `src/templates/*`
-- use atomic components from `src/*`
+- entry points: files in `src/pages`
+- templates/composition: `src/components/templates`
+- reusable UI components: `src/components/ui`
+- domain logic: `src/features`
 
 ### Operations runbooks
 
