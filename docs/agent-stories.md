@@ -1,5 +1,23 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — Booking Confirm Failure Round 6 (`POST /api/v1/bookings` live 500 persisted after first patch)
+
+- [x] Re-tested live after Round 5 deploy and confirmed failure persisted:
+  - deterministic API flow still returned `POST /api/v1/bookings/` => `500 INTERNAL_ERROR`.
+- [x] Found secondary root cause in Round 5 fix implementation:
+  - schema column self-heal attempted parallel `ALTER TABLE` operations for multiple missing columns.
+  - SQLite DDL must be serialized; parallel alters can fail and still surface generic booking error.
+- [x] Implemented correction:
+  - changed missing-column migrations to execute sequentially in deterministic order.
+  - retained all prior validation/conflict/hold protections.
+- [x] Re-ran targeted checks (`repository.createBooking`), lint, and production build.
+
+### Validation
+- `node scripts/live-booking-check.mjs` ✅ still reproduced pre-Round-6 live failure (`holds: 201`, `bookings: 500`) before this iteration’s code change.
+- `npm test -- src/features/bookings/repository.createBooking.test.ts --runInBand` ✅
+- `npm run lint` ✅ (existing repo warnings only)
+- `npm run build` ✅
+
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 5 (`POST /api/v1/bookings` live 500)
 
 - [x] Reproduced live failure deterministically against production endpoint sequence (`services` → `availability` → `holds` → final confirm):

@@ -171,7 +171,13 @@ const ensureTableColumns = async (
     (column) => !existingColumns.has(column.name),
   );
 
-  await Promise.all(missingColumns.map((column) => run(column.sql)));
+  await missingColumns.reduce(
+    (promise, column) =>
+      promise.then(async () => {
+        await run(column.sql);
+      }),
+    Promise.resolve(),
+  );
 };
 
 const ensureBookingNotificationsSchema = async (): Promise<void> => {
