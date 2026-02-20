@@ -154,6 +154,7 @@ describe('POST /api/v1/bookings', () => {
     expect(res.body.error.code).toBe('SLOT_TAKEN');
     expect(res.body.error.alternatives).toHaveLength(1);
     expect(createBooking).not.toHaveBeenCalled();
+    expect(getValidHold).not.toHaveBeenCalled();
   });
 
   it('rejects requests when hold is expired', async () => {
@@ -173,6 +174,39 @@ describe('POST /api/v1/bookings', () => {
 
     expect(res.statusCode).toBe(409);
     expect(res.body.error.code).toBe('HOLD_EXPIRED');
+  });
+
+  it('accepts hold slot timestamps that represent the same instant with timezone offsets', async () => {
+    listAvailability.mockResolvedValueOnce([
+      {
+        slotStart: '2026-03-02T17:00:00.000Z',
+        slotEnd: '2026-03-02T17:30:00.000Z',
+        staffId: 'stf-1',
+      },
+    ]);
+    getValidHold.mockResolvedValueOnce({
+      id: 'hold-1',
+      serviceId: 'svc-1',
+      staffId: 'stf-1',
+      slotStart: '2026-03-02T09:00:00.000-08:00',
+      slotEnd: '2026-03-02T09:30:00.000-08:00',
+    });
+    createBooking.mockResolvedValueOnce({
+      id: 'bk-offset',
+      status: 'confirmed',
+      totalCents: 3000,
+      currency: 'USD',
+      accessToken: 'token-offset',
+    });
+
+    const req = baseReq();
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.data.id).toBe('bk-offset');
+    expect(createBooking).toHaveBeenCalledTimes(1);
   });
 
   it('applies dual limiter keys for ip and fingerprint', async () => {

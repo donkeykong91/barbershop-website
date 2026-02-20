@@ -64,6 +64,17 @@ const getRateLimitConfig = (
 const isNonEmptyString = (value: unknown) =>
   typeof value === 'string' && value.trim().length > 0;
 
+const toInstantMs = (value: string): number | null => {
+  const instantMs = new Date(value).getTime();
+  return Number.isNaN(instantMs) ? null : instantMs;
+};
+
+const isSameInstant = (left: string, right: string): boolean => {
+  const leftMs = toInstantMs(left);
+  const rightMs = toInstantMs(right);
+  return leftMs !== null && rightMs !== null && leftMs === rightMs;
+};
+
 const buildSlotAlternatives = async ({
   serviceDurationMin,
   slotStartIso,
@@ -363,8 +374,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     }
 
     if (
-      validHold.slotStart !== slotStart.toISOString() ||
-      validHold.slotEnd !== slotEnd.toISOString() ||
+      !isSameInstant(validHold.slotStart, slotStart.toISOString()) ||
+      !isSameInstant(validHold.slotEnd, slotEnd.toISOString()) ||
       validHold.staffId !== staffId ||
       validHold.serviceId !== serviceId
     ) {

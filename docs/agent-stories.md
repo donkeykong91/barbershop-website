@@ -42,3 +42,23 @@
 
 ### Notes
 - This closes another legacy-schema production trap that could still surface as generic booking creation failure.
+
+## 2026-02-20 — Sen — Booking Confirm False 409 Round 4 (`POST /api/v1/bookings`)
+
+- [x] Reproduced the false-409 confirm path in production-like inputs: valid hold can be rejected with `409 HOLD_MISMATCH` when hold timestamps include a timezone offset (`-08:00`) while confirm payload is normalized to `Z`.
+- [x] Identified root cause: hold/confirm comparison used raw string equality for timestamps instead of instant equality, causing equivalent moments to be treated as different.
+- [x] Implemented secure, minimal-risk fix:
+  - normalized hold-vs-confirm slot checks to compare parsed instants (`Date` epoch ms) instead of raw string formatting.
+  - preserved strict checks for `serviceId` and `staffId`, and left all existing availability/hold-expiry/conflict behavior intact.
+- [x] Added/expanded regression tests for both:
+  - false 409 case (offset timestamp hold now confirms successfully).
+  - genuine conflict case (`SLOT_TAKEN`) still blocks booking and does not proceed to hold validation/booking create.
+- [x] Ran targeted tests, lint, and production build.
+
+### Validation
+- `npm test -- src/pages/api/v1/bookings/index.test.ts --runInBand` ✅
+- `npm run lint` ✅ (existing repo warnings only)
+- `npm run build` ✅
+
+### Notes
+- This directly addresses final-confirm false conflicts without weakening intended overlap/conflict protections.
