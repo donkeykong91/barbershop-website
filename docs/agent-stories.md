@@ -13,7 +13,10 @@
   - this exact false-failure path (`COMMIT` no-active-transaction now still returns success).
   - genuine conflict path still blocked (`SLOT_UNAVAILABLE`) even if rollback reports no active transaction.
 - [x] Ran required checks: targeted tests, lint, build.
-- [ ] Pending: push/deploy/live confirm.
+- [x] Pushed, deployed, and live-verified:
+  - `POST /api/v1/bookings/holds/` => `201`
+  - `POST /api/v1/bookings/` => `201` with booking payload (no failure message path)
+  - no-slash client path (`POST /api/v1/bookings` -> `308` redirect) now ends in `201` at `/api/v1/bookings/`.
 
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 11 (runtime trace enablement after Round 10 still failing live)
 
