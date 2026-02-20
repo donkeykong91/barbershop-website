@@ -34,7 +34,12 @@ describe('createBooking schema reliability', () => {
       currency: 'USD',
     });
 
-    queryOne.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'cust-1' });
+    queryOne
+      .mockResolvedValueOnce({
+        sql: "CREATE TABLE bookings (status TEXT CHECK (status IN ('pending_payment','confirmed','completed','cancelled','payment_failed','no_show')))"
+      })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'cust-1' });
     queryAll.mockResolvedValue([]);
 
     run.mockResolvedValue({ rowsAffected: 1 });
@@ -144,6 +149,63 @@ describe('createBooking schema reliability', () => {
     const sqlCalls = run.mock.calls.map((call) => call[0] as string);
     expect(sqlCalls).toContain('COMMIT');
     expect(sqlCalls).not.toContain('ROLLBACK');
+  });
+
+  it('uses legacy BOOKED status when bookings table schema only allows BOOKED', async () => {
+    queryOne
+      .mockReset()
+      .mockResolvedValueOnce({
+        sql: "CREATE TABLE bookings (status TEXT CHECK (status IN ('BOOKED','COMPLETED','NO_SHOW','CANCELLED')))"
+      })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'cust-1' });
+
+    await expect(
+      createBooking({
+        serviceId: 'svc-1',
+        staffId: 'stf-1',
+        slotStart: '2026-03-02T17:00:00.000Z',
+        slotEnd: '2026-03-02T17:30:00.000Z',
+        customer: {
+          firstName: 'Pat',
+          lastName: 'Lee',
+          email: 'pat@example.com',
+          phone: '5551234567',
+        },
+      }),
+    ).resolves.toMatchObject({ status: 'confirmed' });
+
+    const insertCall = run.mock.calls.find((call) =>
+      (call[0] as string).includes('INSERT INTO bookings'),
+    );
+    expect(insertCall?.[1]).toContain('BOOKED');
+  });
+
+  it('still blocks genuine slot conflicts with SLOT_UNAVAILABLE', async () => {
+    queryOne
+      .mockReset()
+      .mockResolvedValueOnce({
+        sql: "CREATE TABLE bookings (status TEXT CHECK (status IN ('pending_payment','confirmed','completed','cancelled','payment_failed','no_show')))"
+      })
+      .mockResolvedValueOnce({ found: 1 });
+
+    await expect(
+      createBooking({
+        serviceId: 'svc-1',
+        staffId: 'stf-1',
+        slotStart: '2026-03-02T17:00:00.000Z',
+        slotEnd: '2026-03-02T17:30:00.000Z',
+        customer: {
+          firstName: 'Pat',
+          lastName: 'Lee',
+          email: 'pat@example.com',
+          phone: '5551234567',
+        },
+      }),
+    ).rejects.toThrow('SLOT_UNAVAILABLE');
+
+    const sqlCalls = run.mock.calls.map((call) => call[0] as string);
+    expect(sqlCalls).toContain('ROLLBACK');
   });
 
   it('falls back to BEGIN when BEGIN IMMEDIATE is unsupported', async () => {

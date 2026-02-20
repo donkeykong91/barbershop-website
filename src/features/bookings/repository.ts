@@ -158,6 +158,10 @@ type SchemaColumnRow = {
   name: string;
 };
 
+type SqlDefinitionRow = {
+  sql: string | null;
+};
+
 const ensureTableColumns = async (
   tableName: string,
   requiredColumns: Array<{ name: string; sql: string }>,
@@ -500,6 +504,30 @@ const createBookingAccessToken = async (bookingId: string): Promise<string> => {
   return accessToken;
 };
 
+const CONFIRMED_STATUS = 'confirmed';
+const LEGACY_CONFIRMED_STATUS = 'BOOKED';
+
+const resolveConfirmedBookingStatusForInsert = async (): Promise<string> => {
+  const schemaRow = await queryOne<SqlDefinitionRow>(
+    `
+      SELECT sql
+      FROM sqlite_master
+      WHERE type = 'table' AND name = 'bookings'
+      LIMIT 1
+    `,
+  );
+
+  const definition = schemaRow?.sql ?? '';
+  const containsConfirmed = /'confirmed'/i.test(definition);
+  const containsBooked = /'BOOKED'/i.test(definition);
+
+  if (!containsConfirmed && containsBooked) {
+    return LEGACY_CONFIRMED_STATUS;
+  }
+
+  return CONFIRMED_STATUS;
+};
+
 const createBooking = async (
   input: CreateBookingInput,
 ): Promise<CreatedBookingRecord> => {
@@ -510,6 +538,8 @@ const createBooking = async (
   }
 
   await ensureBookingWriteSchemas();
+  const persistedConfirmedStatus =
+    await resolveConfirmedBookingStatusForInsert();
   await beginWriteTransaction();
 
   try {
@@ -534,7 +564,7 @@ const createBooking = async (
         total_cents,
         currency,
         notes
-      ) VALUES (?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         bookingId,
@@ -543,6 +573,7 @@ const createBooking = async (
         input.staffId,
         input.slotStart,
         input.slotEnd,
+        persistedConfirmedStatus,
         service.priceCents,
         service.currency,
         input.notes?.trim() ?? null,

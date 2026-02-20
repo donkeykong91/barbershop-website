@@ -1,5 +1,26 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — Booking Confirm Failure Round 10 (legacy booking status-constraint compatibility)
+
+- [x] Reproduced current live failure with production-like confirm flow and trailing-slash path:
+  - `POST /api/v1/bookings/holds/` => `201` (hold created)
+  - `POST /api/v1/bookings/` => `500 INTERNAL_ERROR` (`Unable to create booking at this time`)
+- [x] Identified high-probability root cause from code + runtime behavior:
+  - booking insert hard-coded status `'confirmed'`.
+  - legacy production schemas may still enforce uppercase `BOOKED` status via `bookings.status` CHECK constraint, which causes hard insert failure and bubbles as generic `500`.
+- [x] Implemented secure, minimal-risk fix:
+  - booking create now introspects live `bookings` table DDL and selects persisted confirmed value compatibly:
+    - modern schema => `'confirmed'`
+    - legacy-only schema => `'BOOKED'`
+  - API/domain response remains normalized to `confirmed`; conflict protections unchanged.
+- [x] Added/expanded regression tests for:
+  - false-failure path: legacy `BOOKED`-only schema now succeeds.
+  - genuine conflict path: `SLOT_UNAVAILABLE` still blocked.
+- [x] Ran required checks:
+  - targeted tests ✅
+  - lint ✅ (existing warning-only console lint in repo)
+  - build ✅
+
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 9 (blocked by missing production error visibility)
 
 - [x] Re-verified after latest deploy (`4c78f52`) with deterministic live flow script.
