@@ -438,11 +438,7 @@ const createBooking = async (
   }
 };
 
-const logBookingLegalConsent = async (
-  input: LogBookingLegalConsentInput,
-): Promise<void> => {
-  await run(
-    `
+const bookingLegalConsentInsertSql = `
       INSERT INTO booking_legal_consents (
         id,
         booking_id,
@@ -455,20 +451,78 @@ const logBookingLegalConsent = async (
         ip_address,
         user_agent
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+const buildBookingLegalConsentInsertArgs = (
+  input: LogBookingLegalConsentInput,
+) => [
+  crypto.randomUUID(),
+  input.bookingId,
+  input.legalVersion,
+  input.agreedToTerms ? 1 : 0,
+  input.agreedToPrivacy ? 1 : 0,
+  input.agreedToBookingPolicies ? 1 : 0,
+  input.marketingOptIn ? 1 : 0,
+  input.smsOptIn ? 1 : 0,
+  input.ipAddress ?? null,
+  input.userAgent ?? null,
+];
+
+const ensureBookingLegalConsentsSchema = async (): Promise<void> => {
+  await run(
+    `
+      CREATE TABLE IF NOT EXISTS booking_legal_consents (
+        id TEXT PRIMARY KEY,
+        booking_id TEXT NOT NULL,
+        legal_version TEXT NOT NULL,
+        agreed_to_terms INTEGER NOT NULL CHECK (agreed_to_terms IN (0, 1)),
+        agreed_to_privacy INTEGER NOT NULL CHECK (agreed_to_privacy IN (0, 1)),
+        agreed_to_booking_policies INTEGER NOT NULL CHECK (agreed_to_booking_policies IN (0, 1)),
+        marketing_opt_in INTEGER NOT NULL CHECK (marketing_opt_in IN (0, 1)),
+        sms_opt_in INTEGER NOT NULL CHECK (sms_opt_in IN (0, 1)),
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+      )
       `,
-    [
-      crypto.randomUUID(),
-      input.bookingId,
-      input.legalVersion,
-      input.agreedToTerms ? 1 : 0,
-      input.agreedToPrivacy ? 1 : 0,
-      input.agreedToBookingPolicies ? 1 : 0,
-      input.marketingOptIn ? 1 : 0,
-      input.smsOptIn ? 1 : 0,
-      input.ipAddress ?? null,
-      input.userAgent ?? null,
-    ],
   );
+
+  await run(
+    `
+      CREATE INDEX IF NOT EXISTS idx_booking_legal_consents_booking_id
+      ON booking_legal_consents(booking_id)
+      `,
+  );
+};
+
+const isMissingBookingLegalConsentsTableError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /no such table:\s*booking_legal_consents/i.test(error.message);
+};
+
+const logBookingLegalConsent = async (
+  input: LogBookingLegalConsentInput,
+): Promise<void> => {
+  try {
+    await run(
+      bookingLegalConsentInsertSql,
+      buildBookingLegalConsentInsertArgs(input),
+    );
+  } catch (error) {
+    if (!isMissingBookingLegalConsentsTableError(error)) {
+      throw error;
+    }
+
+    await ensureBookingLegalConsentsSchema();
+    await run(
+      bookingLegalConsentInsertSql,
+      buildBookingLegalConsentInsertArgs(input),
+    );
+  }
 };
 
 const getBookingById = async (
