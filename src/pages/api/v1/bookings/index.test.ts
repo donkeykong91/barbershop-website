@@ -36,18 +36,22 @@ jest.mock('../../../../lib/security/rateLimit', () => ({
 const { listAvailability } = jest.requireMock(
   '../../../../features/availability/repository',
 ) as { listAvailability: jest.Mock };
-const { createBooking } = jest.requireMock(
+const { createBooking, logBookingLegalConsent } = jest.requireMock(
   '../../../../features/bookings/repository',
-) as { createBooking: jest.Mock };
+) as { createBooking: jest.Mock; logBookingLegalConsent: jest.Mock };
 const { getServiceById } = jest.requireMock(
   '../../../../features/services/repository',
 ) as { getServiceById: jest.Mock };
 const { checkRateLimit } = jest.requireMock(
   '../../../../lib/security/rateLimit',
 ) as { checkRateLimit: jest.Mock };
-const { getValidHold } = jest.requireMock(
+const { getValidHold, releaseHold, logBookingEvent } = jest.requireMock(
   '../../../../features/bookings/v2Repository',
-) as { getValidHold: jest.Mock };
+) as {
+  getValidHold: jest.Mock;
+  releaseHold: jest.Mock;
+  logBookingEvent: jest.Mock;
+};
 
 type MockRes = NextApiResponse & {
   statusCode: number;
@@ -202,5 +206,41 @@ describe('POST /api/v1/bookings', () => {
       8,
       60000,
     );
+  });
+
+  it('completes final confirm path and returns booking payload when hold and consent are valid', async () => {
+    listAvailability.mockResolvedValueOnce([
+      {
+        slotStart: '2026-03-02T17:00:00.000Z',
+        slotEnd: '2026-03-02T17:30:00.000Z',
+        staffId: 'stf-1',
+      },
+    ]);
+    createBooking.mockResolvedValue({
+      id: 'bk-2',
+      status: 'confirmed',
+      totalCents: 3000,
+      currency: 'USD',
+      accessToken: 'token-2',
+    });
+    logBookingLegalConsent.mockResolvedValue(undefined);
+    releaseHold.mockResolvedValue(undefined);
+    logBookingEvent.mockResolvedValue(undefined);
+
+    const req = baseReq();
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.data).toMatchObject({
+      id: 'bk-2',
+      status: 'confirmed',
+      totalCents: 3000,
+      currency: 'USD',
+      accessToken: 'token-2',
+    });
+    expect(logBookingLegalConsent).toHaveBeenCalledTimes(1);
+    expect(releaseHold).toHaveBeenCalledWith('hold-1');
   });
 });

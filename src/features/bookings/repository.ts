@@ -501,7 +501,9 @@ const isMissingBookingLegalConsentsTableError = (error: unknown): boolean => {
     return false;
   }
 
-  return /no such table:\s*booking_legal_consents/i.test(error.message);
+  return /no such table:\s*(?:\w+\.)?booking_legal_consents/i.test(
+    error.message,
+  );
 };
 
 const logBookingLegalConsent = async (
