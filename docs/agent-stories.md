@@ -1,5 +1,20 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — Booking Confirm Failure Round 9 (blocked by missing production error visibility)
+
+- [x] Re-verified after latest deploy (`4c78f52`) with deterministic live flow script.
+- [x] Result remains:
+  - `POST /api/v1/bookings/holds/` => `201`
+  - `POST /api/v1/bookings/` => `500 INTERNAL_ERROR` (`Unable to create booking at this time`)
+- [ ] Root-cause pinpointing on live is currently blocked by missing server-side error visibility.
+  - Public API response intentionally masks exception details.
+  - Without Vercel function logs (or direct Turso query access), we cannot identify the exact failing SQL/error branch still causing 500.
+
+### Blocking next action for Kevin
+1. Provide Vercel runtime logs for `/api/v1/bookings/` around one failing request (exact stack/error message).
+2. Or provide read access / schema dump for production Turso DB (`.schema` for `bookings`, `booking_access_tokens`, `booking_notifications`, `customers`, `booking_holds`, `rate_limit_windows`).
+3. After one of the above, I can implement a targeted final fix quickly.
+
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 8 (`POST /api/v1/bookings` transaction begin compatibility hardening)
 
 - [x] Investigated persistent live `500` after notification isolation.
