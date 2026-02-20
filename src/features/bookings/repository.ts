@@ -528,8 +528,19 @@ const createBooking = async (
     );
 
     const accessToken = await createBookingAccessToken(bookingId);
-    await queueConfirmationNotifications(bookingId);
     await run('COMMIT');
+
+    try {
+      await queueConfirmationNotifications(bookingId);
+    } catch (notificationError) {
+      console.warn('[booking] notification queue persistence failed', {
+        bookingId,
+        error:
+          notificationError instanceof Error
+            ? notificationError.message
+            : String(notificationError),
+      });
+    }
 
     return {
       id: bookingId,

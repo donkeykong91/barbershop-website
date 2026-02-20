@@ -1,5 +1,25 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — Booking Confirm Failure Round 7 (`POST /api/v1/bookings` still 500; transaction side-effect isolation)
+
+- [x] Narrowed live behavior with deterministic API probing:
+  - hold create succeeds (`201`) and booking confirm still returns `500`.
+  - immediate manual `DELETE` on hold id still returns `204`, indicating confirm did not release hold and likely failed before post-confirm release step.
+- [x] Identified remaining high-probability failure surface in booking write path:
+  - notification queue insert ran inside booking transaction and could still abort confirm on legacy-notification schema issues.
+  - this side effect is non-critical and should not block confirmed booking creation.
+- [x] Implemented secure reliability fix:
+  - moved `queueConfirmationNotifications` out of transaction commit path.
+  - booking create now commits after core booking + access token writes, then queues notifications as best-effort with defensive logging.
+  - retained all conflict/hold/security controls (no 409 bypasses).
+- [x] Added regression test proving notification queue failures post-commit no longer fail booking creation.
+- [x] Ran targeted tests + lint + build.
+
+### Validation
+- `npm test -- src/features/bookings/repository.createBooking.test.ts src/pages/api/v1/bookings/index.test.ts --runInBand` ✅
+- `npm run lint` ✅ (existing repo warnings only)
+- `npm run build` ✅
+
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 6 (`POST /api/v1/bookings` live 500 persisted after first patch)
 
 - [x] Re-tested live after Round 5 deploy and confirmed failure persisted:

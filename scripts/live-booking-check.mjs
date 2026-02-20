@@ -86,6 +86,27 @@ const run = async () => {
     }),
   );
 
+  const holdRelease = await parseResponse(
+    await fetch(`${base}/api/v1/bookings/holds/?holdId=${encodeURIComponent(holdId ?? '')}`, {
+      method: 'DELETE',
+      headers,
+    }),
+  );
+
+  const availabilityAfter = await parseResponse(
+    await fetch(
+      `${base}/api/v1/availability/?serviceId=${service.id}&staffId=${slot.staffId}&from=${encodeURIComponent(new Date(new Date(slot.slotStart).getTime() - 30 * 60 * 1000).toISOString())}&to=${encodeURIComponent(new Date(new Date(slot.slotEnd).getTime() + 30 * 60 * 1000).toISOString())}`,
+      { headers },
+    ),
+  );
+
+  const slotStillAvailable = (availabilityAfter.body?.data ?? []).some(
+    (candidate) =>
+      candidate.slotStart === slot.slotStart &&
+      candidate.slotEnd === slot.slotEnd &&
+      candidate.staffId === slot.staffId,
+  );
+
   console.log(
     JSON.stringify(
       {
@@ -93,6 +114,8 @@ const run = async () => {
         slot,
         hold,
         booking,
+        holdRelease,
+        slotStillAvailable,
       },
       null,
       2,

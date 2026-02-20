@@ -114,4 +114,33 @@ describe('createBooking schema reliability', () => {
       ),
     ).toBe(true);
   });
+
+  it('does not fail booking confirmation when notification queue insert fails post-commit', async () => {
+    run.mockImplementation(async (sql: string) => {
+      if (sql.includes('INSERT INTO booking_notifications')) {
+        throw new Error('table booking_notifications has no column named payload');
+      }
+
+      return { rowsAffected: 1 };
+    });
+
+    await expect(
+      createBooking({
+        serviceId: 'svc-1',
+        staffId: 'stf-1',
+        slotStart: '2026-03-02T17:00:00.000Z',
+        slotEnd: '2026-03-02T17:30:00.000Z',
+        customer: {
+          firstName: 'Pat',
+          lastName: 'Lee',
+          email: 'pat@example.com',
+          phone: '5551234567',
+        },
+      }),
+    ).resolves.toMatchObject({ status: 'confirmed' });
+
+    const sqlCalls = run.mock.calls.map((call) => call[0] as string);
+    expect(sqlCalls).toContain('COMMIT');
+    expect(sqlCalls).not.toContain('ROLLBACK');
+  });
 });
