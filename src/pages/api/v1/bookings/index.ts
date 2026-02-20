@@ -391,22 +391,52 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       notes,
     });
 
-    await logBookingLegalConsent({
-      bookingId: booking.id,
-      legalVersion: consent.legalVersion?.trim() || '2026-02-12',
-      agreedToTerms: Boolean(consent.agreeToTerms),
-      agreedToPrivacy: Boolean(consent.agreeToPrivacy),
-      agreedToBookingPolicies: Boolean(consent.agreeToBookingPolicies),
-      marketingOptIn: Boolean(consent.marketingOptIn),
-      smsOptIn: Boolean(consent.smsOptIn),
-      ipAddress: getClientIp(req),
-      userAgent: req.headers['user-agent']?.toString() ?? null,
-    });
+    try {
+      await logBookingLegalConsent({
+        bookingId: booking.id,
+        legalVersion: consent.legalVersion?.trim() || '2026-02-12',
+        agreedToTerms: Boolean(consent.agreeToTerms),
+        agreedToPrivacy: Boolean(consent.agreeToPrivacy),
+        agreedToBookingPolicies: Boolean(consent.agreeToBookingPolicies),
+        marketingOptIn: Boolean(consent.marketingOptIn),
+        smsOptIn: Boolean(consent.smsOptIn),
+        ipAddress: getClientIp(req),
+        userAgent: req.headers['user-agent']?.toString() ?? null,
+      });
+    } catch (consentError) {
+      console.error('[booking] legal consent persistence failed', {
+        bookingId: booking.id,
+        error:
+          consentError instanceof Error
+            ? consentError.message
+            : String(consentError),
+      });
+    }
 
-    await releaseHold(body.holdId as string);
-    await logBookingEvent(booking.id, 'booking_confirmed', {
-      source: 'api_v1_bookings_create',
-    });
+    try {
+      await releaseHold(body.holdId as string);
+    } catch (releaseError) {
+      console.warn('[booking] hold release failed after confirmation', {
+        holdId: body.holdId,
+        bookingId: booking.id,
+        error:
+          releaseError instanceof Error
+            ? releaseError.message
+            : String(releaseError),
+      });
+    }
+
+    try {
+      await logBookingEvent(booking.id, 'booking_confirmed', {
+        source: 'api_v1_bookings_create',
+      });
+    } catch (eventError) {
+      console.warn('[booking] lifecycle event log failed after confirmation', {
+        bookingId: booking.id,
+        error:
+          eventError instanceof Error ? eventError.message : String(eventError),
+      });
+    }
 
     res.status(201).json({
       data: {

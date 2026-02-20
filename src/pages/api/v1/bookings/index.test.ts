@@ -243,4 +243,44 @@ describe('POST /api/v1/bookings', () => {
     expect(logBookingLegalConsent).toHaveBeenCalledTimes(1);
     expect(releaseHold).toHaveBeenCalledWith('hold-1');
   });
+
+  it('still returns success once booking is created even if post-create logging fails', async () => {
+    listAvailability.mockResolvedValueOnce([
+      {
+        slotStart: '2026-03-02T17:00:00.000Z',
+        slotEnd: '2026-03-02T17:30:00.000Z',
+        staffId: 'stf-1',
+      },
+    ]);
+    createBooking.mockResolvedValue({
+      id: 'bk-3',
+      status: 'confirmed',
+      totalCents: 3000,
+      currency: 'USD',
+      accessToken: 'token-3',
+    });
+    logBookingLegalConsent.mockRejectedValue(
+      new Error('table booking_legal_consents has no column named sms_opt_in'),
+    );
+    releaseHold.mockResolvedValue(undefined);
+    logBookingEvent.mockRejectedValue(
+      new Error('SQLITE_ERROR: no such table: booking_lifecycle_events'),
+    );
+
+    const req = baseReq();
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.data).toMatchObject({
+      id: 'bk-3',
+      status: 'confirmed',
+      totalCents: 3000,
+      currency: 'USD',
+      accessToken: 'token-3',
+    });
+    expect(logBookingLegalConsent).toHaveBeenCalledTimes(1);
+    expect(logBookingEvent).toHaveBeenCalledTimes(1);
+  });
 });

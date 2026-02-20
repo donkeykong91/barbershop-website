@@ -506,6 +506,56 @@ const isMissingBookingLegalConsentsTableError = (error: unknown): boolean => {
   );
 };
 
+const isMissingBookingLegalConsentsColumnError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /table\s+(?:\w+\.)?booking_legal_consents\s+has\s+no\s+column\s+named/i.test(
+    error.message,
+  );
+};
+
+type TableInfoRow = {
+  name: string;
+};
+
+const ensureBookingLegalConsentsColumns = async (): Promise<void> => {
+  const rows = await queryAll<TableInfoRow>(
+    'PRAGMA table_info(booking_legal_consents)',
+  );
+  const existingColumns = new Set(rows.map((row) => row.name));
+
+  const requiredColumns: Array<{ name: string; sql: string }> = [
+    {
+      name: 'agreed_to_booking_policies',
+      sql: 'ALTER TABLE booking_legal_consents ADD COLUMN agreed_to_booking_policies INTEGER NOT NULL DEFAULT 0 CHECK (agreed_to_booking_policies IN (0, 1))',
+    },
+    {
+      name: 'marketing_opt_in',
+      sql: 'ALTER TABLE booking_legal_consents ADD COLUMN marketing_opt_in INTEGER NOT NULL DEFAULT 0 CHECK (marketing_opt_in IN (0, 1))',
+    },
+    {
+      name: 'sms_opt_in',
+      sql: 'ALTER TABLE booking_legal_consents ADD COLUMN sms_opt_in INTEGER NOT NULL DEFAULT 0 CHECK (sms_opt_in IN (0, 1))',
+    },
+    {
+      name: 'ip_address',
+      sql: 'ALTER TABLE booking_legal_consents ADD COLUMN ip_address TEXT',
+    },
+    {
+      name: 'user_agent',
+      sql: 'ALTER TABLE booking_legal_consents ADD COLUMN user_agent TEXT',
+    },
+  ];
+
+  const missingColumnStatements = requiredColumns
+    .filter((column) => !existingColumns.has(column.name))
+    .map((column) => run(column.sql));
+
+  await Promise.all(missingColumnStatements);
+};
+
 const logBookingLegalConsent = async (
   input: LogBookingLegalConsentInput,
 ): Promise<void> => {
@@ -515,11 +565,14 @@ const logBookingLegalConsent = async (
       buildBookingLegalConsentInsertArgs(input),
     );
   } catch (error) {
-    if (!isMissingBookingLegalConsentsTableError(error)) {
+    if (isMissingBookingLegalConsentsTableError(error)) {
+      await ensureBookingLegalConsentsSchema();
+    } else if (isMissingBookingLegalConsentsColumnError(error)) {
+      await ensureBookingLegalConsentsColumns();
+    } else {
       throw error;
     }
 
-    await ensureBookingLegalConsentsSchema();
     await run(
       bookingLegalConsentInsertSql,
       buildBookingLegalConsentInsertArgs(input),

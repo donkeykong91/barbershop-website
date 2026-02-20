@@ -273,16 +273,61 @@ const consumeActionToken = async (
   return (result as { rowsAffected?: number }).rowsAffected === 1;
 };
 
+const ensureBookingLifecycleEventsSchema = async (): Promise<void> => {
+  await run(
+    `
+      CREATE TABLE IF NOT EXISTS booking_lifecycle_events (
+        id TEXT PRIMARY KEY,
+        booking_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        payload_json TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+      )
+    `,
+  );
+
+  await run(
+    `
+      CREATE INDEX IF NOT EXISTS idx_booking_lifecycle_events_booking
+      ON booking_lifecycle_events(booking_id, created_at)
+    `,
+  );
+};
+
+const isMissingBookingLifecycleEventsTableError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /no such table:\s*(?:\w+\.)?booking_lifecycle_events/i.test(
+    error.message,
+  );
+};
+
 const logBookingEvent = async (
   bookingId: string,
   eventType: string,
   payload: Record<string, unknown> = {},
 ) => {
-  await run(
-    `INSERT INTO booking_lifecycle_events (id, booking_id, event_type, payload_json)
-     VALUES (?, ?, ?, ?)`,
-    [crypto.randomUUID(), bookingId, eventType, JSON.stringify(payload)],
-  );
+  try {
+    await run(
+      `INSERT INTO booking_lifecycle_events (id, booking_id, event_type, payload_json)
+       VALUES (?, ?, ?, ?)`,
+      [crypto.randomUUID(), bookingId, eventType, JSON.stringify(payload)],
+    );
+  } catch (error) {
+    if (!isMissingBookingLifecycleEventsTableError(error)) {
+      throw error;
+    }
+
+    await ensureBookingLifecycleEventsSchema();
+    await run(
+      `INSERT INTO booking_lifecycle_events (id, booking_id, event_type, payload_json)
+       VALUES (?, ?, ?, ?)`,
+      [crypto.randomUUID(), bookingId, eventType, JSON.stringify(payload)],
+    );
+  }
 };
 
 const listReminderCandidates = async (fromIso: string, toIso: string) =>
