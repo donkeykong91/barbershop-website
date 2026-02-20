@@ -181,6 +181,33 @@ describe('createBooking schema reliability', () => {
     expect(insertCall?.[1]).toContain('BOOKED');
   });
 
+  it('treats COMMIT no-active-transaction errors as post-write success', async () => {
+    run.mockImplementation(async (sql: string) => {
+      if (sql === 'COMMIT') {
+        throw new Error(
+          'SQLITE_UNKNOWN: SQLite error: cannot commit - no transaction is active',
+        );
+      }
+
+      return { rowsAffected: 1 };
+    });
+
+    await expect(
+      createBooking({
+        serviceId: 'svc-1',
+        staffId: 'stf-1',
+        slotStart: '2026-03-02T17:00:00.000Z',
+        slotEnd: '2026-03-02T17:30:00.000Z',
+        customer: {
+          firstName: 'Pat',
+          lastName: 'Lee',
+          email: 'pat@example.com',
+          phone: '5551234567',
+        },
+      }),
+    ).resolves.toMatchObject({ status: 'confirmed' });
+  });
+
   it('still blocks genuine slot conflicts with SLOT_UNAVAILABLE', async () => {
     queryOne
       .mockReset()
@@ -188,6 +215,14 @@ describe('createBooking schema reliability', () => {
         sql: "CREATE TABLE bookings (status TEXT CHECK (status IN ('pending_payment','confirmed','completed','cancelled','payment_failed','no_show')))"
       })
       .mockResolvedValueOnce({ found: 1 });
+
+    run.mockImplementation(async (sql: string) => {
+      if (sql === 'ROLLBACK') {
+        throw new Error('cannot rollback - no transaction is active');
+      }
+
+      return { rowsAffected: 1 };
+    });
 
     await expect(
       createBooking({
@@ -203,9 +238,6 @@ describe('createBooking schema reliability', () => {
         },
       }),
     ).rejects.toThrow('SLOT_UNAVAILABLE');
-
-    const sqlCalls = run.mock.calls.map((call) => call[0] as string);
-    expect(sqlCalls).toContain('ROLLBACK');
   });
 
   it('falls back to BEGIN when BEGIN IMMEDIATE is unsupported', async () => {

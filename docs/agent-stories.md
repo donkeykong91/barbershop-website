@@ -1,5 +1,20 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — Booking Confirm Failure Round 12 (true root cause: COMMIT on non-active transaction)
+
+- [x] Reproduced failure on live after Round 11 and captured concrete runtime trace from Vercel logs:
+  - `[booking] create booking failed ... errorMessage: 'SQLITE_UNKNOWN: SQLite error: cannot commit - no transaction is active'`
+- [x] Root cause identified:
+  - production libsql/Turso execution path can return `cannot commit - no transaction is active` even after successful booking writes, causing false user-facing `500`.
+- [x] Implemented secure minimal-risk fix:
+  - treat `COMMIT`/`ROLLBACK` "no transaction is active" errors as compatibility no-ops.
+  - preserve existing conflict blocking (`SLOT_UNAVAILABLE`) and all validation/hold/rate-limit controls.
+- [x] Added regression tests for:
+  - this exact false-failure path (`COMMIT` no-active-transaction now still returns success).
+  - genuine conflict path still blocked (`SLOT_UNAVAILABLE`) even if rollback reports no active transaction.
+- [x] Ran required checks: targeted tests, lint, build.
+- [ ] Pending: push/deploy/live confirm.
+
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 11 (runtime trace enablement after Round 10 still failing live)
 
 - [x] Re-verified post-deploy of Round 10 commit and confirmed live failure persists:

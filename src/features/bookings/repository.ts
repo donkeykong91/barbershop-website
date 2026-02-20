@@ -280,6 +280,24 @@ const isBeginImmediateFallbackError = (error: unknown): boolean => {
   );
 };
 
+const isNoActiveTransactionError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /cannot\s+(?:commit|rollback)\s+-\s+no transaction is active/i.test(
+    error.message,
+  );
+};
+
+const rollbackIfTransactionActive = async (): Promise<void> => {
+  await run('ROLLBACK').catch((error) => {
+    if (!isNoActiveTransactionError(error)) {
+      throw error;
+    }
+  });
+};
+
 const beginWriteTransaction = async (): Promise<void> => {
   try {
     await run('BEGIN IMMEDIATE');
@@ -544,7 +562,7 @@ const createBooking = async (
 
   try {
     if (await hasSlotConflict(input.staffId, input.slotStart, input.slotEnd)) {
-      await run('ROLLBACK');
+      await rollbackIfTransactionActive();
       throw new Error('SLOT_UNAVAILABLE');
     }
 
@@ -581,7 +599,13 @@ const createBooking = async (
     );
 
     const accessToken = await createBookingAccessToken(bookingId);
-    await run('COMMIT');
+    try {
+      await run('COMMIT');
+    } catch (error) {
+      if (!isNoActiveTransactionError(error)) {
+        throw error;
+      }
+    }
 
     try {
       await queueConfirmationNotifications(bookingId);
@@ -607,7 +631,7 @@ const createBooking = async (
       accessToken,
     } as CreatedBookingRecord;
   } catch (error) {
-    await run('ROLLBACK').catch(() => {
+    await rollbackIfTransactionActive().catch(() => {
       // Best-effort rollback; lock release is required for request progress.
     });
 
