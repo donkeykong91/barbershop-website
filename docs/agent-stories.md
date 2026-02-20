@@ -1,5 +1,29 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — Booking Confirm Failure Round 5 (`POST /api/v1/bookings` live 500)
+
+- [x] Reproduced live failure deterministically against production endpoint sequence (`services` → `availability` → `holds` → final confirm):
+  - `POST /api/v1/bookings/holds/` returned `201` with hold id.
+  - `POST /api/v1/bookings/` returned `500 INTERNAL_ERROR` with `Unable to create booking at this time`.
+- [x] Identified likely schema-drift root cause still unhandled in booking transaction path:
+  - `booking_notifications` and `booking_access_tokens` existence checks did not repair missing required columns on legacy tables.
+  - `CREATE TABLE IF NOT EXISTS` alone is insufficient when table exists but has drifted columns.
+- [x] Implemented secure, minimal-risk fix:
+  - added generic pre-transaction column self-heal helper (`PRAGMA table_info` + targeted `ALTER TABLE ADD COLUMN`) for booking write-support tables.
+  - ensured `booking_notifications` critical columns (`status`, `payload`, `created_at`) and `booking_access_tokens` (`token_hash`, `created_at`, `updated_at`) are repaired before transaction begins.
+  - preserved existing slot-conflict/hold validation and 409 protections.
+- [x] Added regression coverage to assert missing-column self-heal executes before transactional booking writes.
+- [x] Ran targeted tests, lint, and production build.
+
+### Validation
+- `node scripts/live-booking-check.mjs` ✅ reproduced pre-fix live error (`holds: 201`, `bookings: 500`).
+- `npm test -- src/features/bookings/repository.createBooking.test.ts src/pages/api/v1/bookings/index.test.ts --runInBand` ✅
+- `npm run lint` ✅ (existing repo warnings only)
+- `npm run build` ✅
+
+### Notes
+- Browser tool verification became unavailable mid-run due browser control service timeout; API-level deterministic verification was used for this iteration.
+
 ## 2026-02-20 — Sen — Booking Step 5 Confirm Failure (`Unable to create booking at this time`)
 
 - [x] Reproduced failure path in production-like conditions: booking can be persisted, then request still returns `500 INTERNAL_ERROR` if post-create side effects fail.

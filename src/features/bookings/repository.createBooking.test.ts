@@ -10,9 +10,10 @@ jest.mock('../services/repository', () => ({
   getServiceById: jest.fn(),
 }));
 
-const { run, queryOne } = jest.requireMock('../../lib/db/sqlite') as {
+const { run, queryOne, queryAll } = jest.requireMock('../../lib/db/sqlite') as {
   run: jest.Mock;
   queryOne: jest.Mock;
+  queryAll: jest.Mock;
 };
 
 const { getServiceById } = jest.requireMock('../services/repository') as {
@@ -34,6 +35,7 @@ describe('createBooking schema reliability', () => {
     });
 
     queryOne.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'cust-1' });
+    queryAll.mockResolvedValue([]);
 
     run.mockResolvedValue({ rowsAffected: 1 });
   });
@@ -72,5 +74,44 @@ describe('createBooking schema reliability', () => {
     expect(accessTokensTableIndex).toBeGreaterThan(-1);
     expect(notificationsTableIndex).toBeLessThan(beginIndex);
     expect(accessTokensTableIndex).toBeLessThan(beginIndex);
+  });
+
+  it('self-heals missing booking notifications/access token columns before writes', async () => {
+    queryAll
+      .mockResolvedValueOnce([{ name: 'id' }, { name: 'booking_id' }, { name: 'channel' }])
+      .mockResolvedValueOnce([{ name: 'booking_id' }]);
+
+    await expect(
+      createBooking({
+        serviceId: 'svc-1',
+        staffId: 'stf-1',
+        slotStart: '2026-03-02T17:00:00.000Z',
+        slotEnd: '2026-03-02T17:30:00.000Z',
+        customer: {
+          firstName: 'Pat',
+          lastName: 'Lee',
+          email: 'pat@example.com',
+          phone: '5551234567',
+        },
+      }),
+    ).resolves.toMatchObject({ status: 'confirmed' });
+
+    const sqlCalls = run.mock.calls.map((call) => call[0] as string);
+
+    expect(
+      sqlCalls.some((sql) =>
+        sql.includes('ALTER TABLE booking_notifications ADD COLUMN status'),
+      ),
+    ).toBe(true);
+    expect(
+      sqlCalls.some((sql) =>
+        sql.includes('ALTER TABLE booking_notifications ADD COLUMN payload'),
+      ),
+    ).toBe(true);
+    expect(
+      sqlCalls.some((sql) =>
+        sql.includes('ALTER TABLE booking_access_tokens ADD COLUMN token_hash'),
+      ),
+    ).toBe(true);
   });
 });

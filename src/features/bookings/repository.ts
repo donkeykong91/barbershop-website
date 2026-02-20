@@ -154,6 +154,26 @@ const CANCELLABLE_STATUSES: BookingStatus[] = ['confirmed', 'pending_payment'];
 const SHA256_HEX_LENGTH = 64;
 const DUMMY_BOOKING_TOKEN_HASH = '0'.repeat(SHA256_HEX_LENGTH);
 
+type SchemaColumnRow = {
+  name: string;
+};
+
+const ensureTableColumns = async (
+  tableName: string,
+  requiredColumns: Array<{ name: string; sql: string }>,
+): Promise<void> => {
+  const rows = await queryAll<SchemaColumnRow>(
+    `PRAGMA table_info(${tableName})`,
+  );
+  const existingColumns = new Set(rows.map((row) => row.name));
+
+  const missingColumns = requiredColumns.filter(
+    (column) => !existingColumns.has(column.name),
+  );
+
+  await Promise.all(missingColumns.map((column) => run(column.sql)));
+};
+
 const ensureBookingNotificationsSchema = async (): Promise<void> => {
   await run(
     `
@@ -168,6 +188,21 @@ const ensureBookingNotificationsSchema = async (): Promise<void> => {
     )
     `,
   );
+
+  await ensureTableColumns('booking_notifications', [
+    {
+      name: 'status',
+      sql: "ALTER TABLE booking_notifications ADD COLUMN status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'sent', 'failed'))",
+    },
+    {
+      name: 'payload',
+      sql: "ALTER TABLE booking_notifications ADD COLUMN payload TEXT NOT NULL DEFAULT '{}'",
+    },
+    {
+      name: 'created_at',
+      sql: 'ALTER TABLE booking_notifications ADD COLUMN created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    },
+  ]);
 
   await run(
     `
@@ -196,6 +231,21 @@ const ensureBookingAccessTokensSchema = async (): Promise<void> => {
     )
     `,
   );
+
+  await ensureTableColumns('booking_access_tokens', [
+    {
+      name: 'token_hash',
+      sql: "ALTER TABLE booking_access_tokens ADD COLUMN token_hash TEXT NOT NULL DEFAULT ''",
+    },
+    {
+      name: 'created_at',
+      sql: 'ALTER TABLE booking_access_tokens ADD COLUMN created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    },
+    {
+      name: 'updated_at',
+      sql: 'ALTER TABLE booking_access_tokens ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    },
+  ]);
 
   await run(
     `
