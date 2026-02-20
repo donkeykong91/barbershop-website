@@ -266,6 +266,28 @@ const ensureBookingWriteSchemas = async (): Promise<void> => {
   await ensureBookingAccessTokensSchema();
 };
 
+const isBeginImmediateFallbackError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /(syntax error|not supported|cannot start a transaction)/i.test(
+    error.message,
+  );
+};
+
+const beginWriteTransaction = async (): Promise<void> => {
+  try {
+    await run('BEGIN IMMEDIATE');
+  } catch (error) {
+    if (!isBeginImmediateFallbackError(error)) {
+      throw error;
+    }
+
+    await run('BEGIN');
+  }
+};
+
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
 const hashBookingAccessToken = (token: string) =>
@@ -488,7 +510,7 @@ const createBooking = async (
   }
 
   await ensureBookingWriteSchemas();
-  await run('BEGIN IMMEDIATE');
+  await beginWriteTransaction();
 
   try {
     if (await hasSlotConflict(input.staffId, input.slotStart, input.slotEnd)) {

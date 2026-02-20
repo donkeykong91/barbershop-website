@@ -1,5 +1,19 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — Booking Confirm Failure Round 8 (`POST /api/v1/bookings` transaction begin compatibility hardening)
+
+- [x] Investigated persistent live `500` after notification isolation.
+- [x] Added defensive transaction compatibility fallback for production DB engines:
+  - booking writes now try `BEGIN IMMEDIATE`, and automatically fall back to `BEGIN` only for known transaction-start compatibility errors.
+  - preserves rollback semantics and conflict checks.
+- [x] Added regression test for `BEGIN IMMEDIATE` fallback path.
+- [x] Re-ran targeted tests, lint, and build.
+
+### Validation
+- `npm test -- src/features/bookings/repository.createBooking.test.ts --runInBand` ✅
+- `npm run lint` ✅ (existing repo warnings only)
+- `npm run build` ✅
+
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 7 (`POST /api/v1/bookings` still 500; transaction side-effect isolation)
 
 - [x] Narrowed live behavior with deterministic API probing:
