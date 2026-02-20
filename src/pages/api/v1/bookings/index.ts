@@ -459,6 +459,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
   } catch (error) {
+    console.error('[booking] create booking failed', {
+      route: '/api/v1/bookings',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+    });
+
     if (error instanceof Error && error.message === 'SLOT_UNAVAILABLE') {
       res.status(409).json({
         error: {

@@ -1,5 +1,14 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — Booking Confirm Failure Round 11 (runtime trace enablement after Round 10 still failing live)
+
+- [x] Re-verified post-deploy of Round 10 commit and confirmed live failure persists:
+  - `POST /api/v1/bookings/holds/` => `201`
+  - `POST /api/v1/bookings/` => `500 INTERNAL_ERROR`
+- [x] Added explicit server-side error logging at booking API catch boundary (no request-body/PII), to expose exact runtime error message for `/api/v1/bookings` in Vercel logs.
+- [x] Ran targeted test, lint, and build before redeploy.
+- [ ] Pending after deploy: capture new concrete runtime error line and implement final targeted fix.
+
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 10 (legacy booking status-constraint compatibility)
 
 - [x] Reproduced current live failure with production-like confirm flow and trailing-slash path:
