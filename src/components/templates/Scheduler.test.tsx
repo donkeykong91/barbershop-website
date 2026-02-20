@@ -113,6 +113,24 @@ describe('Scheduler UX regressions', () => {
     ).toBeInTheDocument();
   });
 
+  it('maps non-JSON 403 availability responses to a safe user-facing message', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => '<!DOCTYPE html><html><body>checkpoint</body></html>',
+    });
+
+    render(<Scheduler services={services} staff={staff} />);
+    fireEvent.click(
+      screen.getByRole('button', { name: /find available slots/i }),
+    );
+
+    await screen.findByText(/availability failed to load/i);
+    expect(
+      screen.getByText(/temporarily protected by a security check/i),
+    ).toBeInTheDocument();
+  });
+
   it('renders actionable call CTA with tel link + accessible label', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,

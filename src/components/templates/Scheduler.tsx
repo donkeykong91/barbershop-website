@@ -155,6 +155,49 @@ const parseRetryAfterSeconds = (retryAfterHeader: string | null) => {
   return Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
 };
 
+const parseJsonSafely = async <T,>(response: Response): Promise<T | null> => {
+  const responseWithFallback = response as Response & {
+    text?: () => Promise<string>;
+    json?: () => Promise<unknown>;
+  };
+
+  if (typeof responseWithFallback.text === 'function') {
+    const body = await responseWithFallback.text();
+
+    if (!body) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(body) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof responseWithFallback.json === 'function') {
+    try {
+      return (await responseWithFallback.json()) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
+
+const getInvalidApiResponseMessage = (response: Response, fallback: string) => {
+  if (response.status === 403) {
+    return 'Booking service is temporarily protected by a security check. Please retry in a moment or call the shop.';
+  }
+
+  if (response.status >= 500) {
+    return 'Booking service is temporarily unavailable. Please retry in a moment.';
+  }
+
+  return fallback;
+};
+
 const getShopMinutes = (iso: string) => {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: AppConfig.shopTimeZone,
@@ -921,14 +964,27 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
       }
 
       const response = await fetch(`/api/v1/availability?${params.toString()}`);
-      const payload = (await response.json()) as {
+      const payload = await parseJsonSafely<{
         data?: AvailabilitySlot[];
         error?: { message?: string };
-      };
+      }>(response);
 
       if (!response.ok) {
         throw new Error(
-          payload.error?.message ?? 'Unable to load availability',
+          payload?.error?.message ??
+            getInvalidApiResponseMessage(
+              response,
+              'Unable to load availability',
+            ),
+        );
+      }
+
+      if (!payload) {
+        throw new Error(
+          getInvalidApiResponseMessage(
+            response,
+            'Schedule service returned an invalid response. Please retry.',
+          ),
         );
       }
 
