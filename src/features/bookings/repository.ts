@@ -154,6 +154,62 @@ const CANCELLABLE_STATUSES: BookingStatus[] = ['confirmed', 'pending_payment'];
 const SHA256_HEX_LENGTH = 64;
 const DUMMY_BOOKING_TOKEN_HASH = '0'.repeat(SHA256_HEX_LENGTH);
 
+const ensureBookingNotificationsSchema = async (): Promise<void> => {
+  await run(
+    `
+    CREATE TABLE IF NOT EXISTS booking_notifications (
+      id TEXT PRIMARY KEY,
+      booking_id TEXT NOT NULL,
+      channel TEXT NOT NULL CHECK (channel IN ('email', 'sms')),
+      status TEXT NOT NULL CHECK (status IN ('queued', 'sent', 'failed')),
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+    )
+    `,
+  );
+
+  await run(
+    `
+    CREATE INDEX IF NOT EXISTS idx_booking_notifications_booking
+    ON booking_notifications(booking_id)
+    `,
+  );
+
+  await run(
+    `
+    CREATE INDEX IF NOT EXISTS idx_booking_notifications_status
+    ON booking_notifications(status)
+    `,
+  );
+};
+
+const ensureBookingAccessTokensSchema = async (): Promise<void> => {
+  await run(
+    `
+    CREATE TABLE IF NOT EXISTS booking_access_tokens (
+      booking_id TEXT PRIMARY KEY,
+      token_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+    )
+    `,
+  );
+
+  await run(
+    `
+    CREATE INDEX IF NOT EXISTS idx_booking_access_tokens_created_at
+    ON booking_access_tokens(created_at)
+    `,
+  );
+};
+
+const ensureBookingWriteSchemas = async (): Promise<void> => {
+  await ensureBookingNotificationsSchema();
+  await ensureBookingAccessTokensSchema();
+};
+
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
 const hashBookingAccessToken = (token: string) =>
@@ -375,6 +431,7 @@ const createBooking = async (
     throw new Error('SERVICE_NOT_BOOKABLE');
   }
 
+  await ensureBookingWriteSchemas();
   await run('BEGIN IMMEDIATE');
 
   try {

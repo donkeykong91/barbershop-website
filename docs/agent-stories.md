@@ -22,3 +22,23 @@
 ### Notes
 - This prevents ghost-failure UX where users see booking failure after successful booking persistence.
 - Added schema self-healing keeps compatibility with partially migrated/legacy production databases.
+
+## 2026-02-20 — Sen — Booking Confirm Failure Round 3 (`Unable to create booking at this time`)
+
+- [x] Reproduced remaining failure path aligned to user flow (`POST /api/v1/bookings` final confirm): repository write path can still fail hard on partially migrated DB schema before API can return success.
+- [x] Identified true remaining failure points:
+  - missing `booking_notifications` table/index in legacy production schema can fail notification queue insert during booking transaction.
+  - missing `booking_access_tokens` table/index in legacy production schema can fail access-token insert during booking transaction.
+- [x] Implemented secure, low-regression fix:
+  - added pre-transaction schema guards in booking write path to ensure `booking_notifications` + `booking_access_tokens` tables/indexes exist before transactional inserts.
+  - retained existing transaction + rollback behavior; no relaxation of validation, rate limits, hold checks, or auth surface.
+- [x] Added regression coverage that fails on prior implementation and passes after fix.
+- [x] Ran targeted tests, lint, and build.
+
+### Validation
+- `npm test -- src/features/bookings/repository.createBooking.test.ts src/pages/api/v1/bookings/index.test.ts` ✅
+- `npm run lint` ✅ (existing repo warnings only)
+- `npm run build` ✅
+
+### Notes
+- This closes another legacy-schema production trap that could still surface as generic booking creation failure.
