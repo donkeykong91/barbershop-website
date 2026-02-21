@@ -538,3 +538,23 @@ E2E_STEP_REACHED: STEP3_CONTACT_FORM
 FAILURE_DOMAIN: control-plane (false-negative timeout on action ack)
 COVERAGE_EVIDENCE: Reproduced Step2 Continue timeout signature (`Can't reach the OpenClaw browser control service (timed out after 20000ms)`) twice while driving /?staffId=stf_kevin#book with browser actions. In both cases, immediate same-target snapshot showed flow had already advanced to Step3 contact form. Confirms automation/control-plane response timeout rather than booking UI/app failure.
 MITIGATION_NOTES: Use one tab targetId end-to-end, snapshot before critical actions, and on timeout verify state with same-target snapshot before declaring failure. See docs/openclaw-step2-timeout-runbook.md.
+
+---
+RUN_TS: 2026-02-20T15:04:00-08:00
+LAST_TICKET_ID: QA-WEB-AH-003
+NEW_IDS_ADDED: NONE
+LAST_SUCCESSFUL_E2E_TS: 2026-02-20T14:34:00-08:00
+E2E_ATTEMPTED: YES
+E2E_STEP_REACHED: STEP2_CONTINUE_ACTION
+FAILURE_DOMAIN: control-plane
+COVERAGE_EVIDENCE: Mandatory real-browser E2E attempted on /?staffId=stf_kevin#book (open -> Step1 Find available slots -> Step2 slot selected). Control-plane failure reproduced on Step 2 Continue with existing QA-WEB-AH-002 signature: Can't reach the OpenClaw browser control service (timed out after 20000ms). Repro step: browser act(click ref=e155 Continue) after selecting slot ref=e160. Additional website passes: web_fetch x3 on /, /?qa_pass=2, /?qa_pass=3 all HTTP 200 with unchanged homepage content.
+
+---
+RUN_TS: 2026-02-20T16:04:00-08:00
+LAST_TICKET_ID: QA-WEB-AH-003
+NEW_IDS_ADDED: NONE
+LAST_SUCCESSFUL_E2E_TS: 2026-02-20T14:34:00-08:00
+E2E_ATTEMPTED: YES
+E2E_STEP_REACHED: STEP2_CONTINUE_ACTION
+FAILURE_DOMAIN: control-plane
+COVERAGE_EVIDENCE: Mandatory real-browser E2E attempted on /?staffId=stf_kevin#book (open -> Step1 Find available slots -> Step2 slot selected). Control-plane failure reproduced on Step 2 Continue with existing QA-WEB-AH-002 signature: Can't reach the OpenClaw browser control service (timed out after 20000ms). Repro step: browser act(click ref=e155 Continue) after selecting slot ref=e160. Additional website passes: web_fetch x3 on /, /?qa_pass=2, /?qa_pass=3 all HTTP 200 with unchanged homepage content.

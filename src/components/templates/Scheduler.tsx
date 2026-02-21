@@ -1721,9 +1721,6 @@ const Scheduler = ({ services, staff }: SchedulerProps) => {
                               onClick={() => {
                                 setSelectedSlot(slot);
                                 setFocusedSlotIndex(slotIndex);
-                                setStep((currentStep) =>
-                                  Math.max(currentStep, 3),
-                                );
                               }}
                               onFocus={() => setFocusedSlotIndex(slotIndex)}
                               className={`${ctaSecondaryClass} text-left ${

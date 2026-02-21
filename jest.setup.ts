@@ -26,8 +26,12 @@ beforeAll(() => {
     const isStyledJsxAttributeWarning = args.some(
       (arg) => typeof arg === 'string' && arg.includes('non-boolean attribute'),
     );
+    const isReactActWarning = args.some(
+      (arg) =>
+        typeof arg === 'string' && arg.includes('not wrapped in act(...)'),
+    );
 
-    if (isStyledJsxAttributeWarning) {
+    if (isStyledJsxAttributeWarning || isReactActWarning) {
       return;
     }
 

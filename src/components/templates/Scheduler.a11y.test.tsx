@@ -82,14 +82,14 @@ describe('Scheduler accessibility regressions', () => {
     await user.click(
       await screen.findByRole('radio', { name: /staff: alex/i }),
     );
-    // Slot selection now auto-advances to contact step.
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: 'Review summary' }));
 
     const firstNameError = await screen.findByText('first Name is required.');
     expect(firstNameError).toHaveAttribute('role', 'alert');
     expect(firstNameError).toHaveAttribute('aria-live', 'assertive');
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('renders call-the-shop as tel link with accessible name including phone', async () => {
@@ -158,6 +158,7 @@ describe('Scheduler accessibility regressions', () => {
     expect(radios[0]).toHaveAttribute('aria-checked', 'false');
 
     await user.click(radios[0]);
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByText(/step 3 of 5/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
   });
@@ -176,6 +177,12 @@ describe('Scheduler accessibility regressions', () => {
               staffId: 'staff-1',
             },
           ],
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: { id: 'hold_a11y', expiresAt: '2026-03-02T17:05:00.000Z' },
         }),
       } as Response)
       .mockResolvedValueOnce({
@@ -211,15 +218,17 @@ describe('Scheduler accessibility regressions', () => {
 
     render(<Scheduler services={services} staff={staff} />);
 
-    const restoreNotice = await screen.findByText(/restored your draft/i);
+    const restoreNoticeText = await screen.findByText(/found a previous booking draft/i);
+    const restoreNotice = restoreNoticeText.closest('[role="status"]');
     expect(restoreNotice).toHaveAttribute('role', 'status');
     expect(restoreNotice).toHaveAttribute('aria-live', 'polite');
 
+    await user.click(screen.getByRole('button', { name: /continue draft/i }));
     await user.click(
-      screen.getByRole('button', { name: /search next 14 days/i }),
+      screen.getByRole('button', { name: /next 14 days/i }),
     );
     await user.click(await screen.findByRole('radio', { name: /staff:/i }));
-    // Slot selection now auto-advances to contact step.
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     await user.type(screen.getByLabelText(/first name/i), 'Pat');
     await user.type(screen.getByLabelText(/last name/i), 'Lee');

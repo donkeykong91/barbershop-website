@@ -154,7 +154,7 @@ describe('Scheduler UX regressions', () => {
     );
   });
 
-  it('advances to contact step immediately after selecting a slot', async () => {
+  it('advances to contact step after selecting a slot and continuing', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -176,6 +176,7 @@ describe('Scheduler UX regressions', () => {
     fireEvent.click(
       await screen.findByRole('radio', { name: /staff: kevin/i }),
     );
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     expect(screen.getByText(/step 3 of 5/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
@@ -235,7 +236,7 @@ describe('Scheduler UX regressions', () => {
       screen.getByRole('button', { name: /find available slots/i }),
     );
     fireEvent.click(await screen.findByRole('radio', { name: /staff:/i }));
-    // Slot selection now auto-advances to contact step.
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.change(screen.getByLabelText(/first name/i), {
       target: { value: 'Pat' },
@@ -272,6 +273,12 @@ describe('Scheduler UX regressions', () => {
         }),
       })
       .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: { id: 'hold_123', expiresAt: '2026-03-02T17:05:00.000Z' },
+        }),
+      })
+      .mockResolvedValueOnce({
         ok: false,
         status: 429,
         headers: new Headers({ 'Retry-After': '5' }),
@@ -291,7 +298,7 @@ describe('Scheduler UX regressions', () => {
     );
 
     fireEvent.click(screen.getByRole('radio', { name: /staff: kevin/i }));
-    // Slot selection now auto-advances to contact step.
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.change(screen.getByLabelText(/first name/i), {
       target: { value: 'Pat' },
@@ -311,7 +318,12 @@ describe('Scheduler UX regressions', () => {
       .getAllByRole('checkbox')
       .slice(0, 3)
       .forEach((checkbox) => fireEvent.click(checkbox));
-    fireEvent.click(screen.getByRole('button', { name: /confirm booking/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /confirm booking/i })).toBeEnabled(),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /confirm booking/i }));
+    });
 
     await waitFor(() =>
       expect(
@@ -364,14 +376,14 @@ describe('Scheduler UX regressions', () => {
 
     const firstRender = render(<Scheduler services={services} staff={staff} />);
     expect(
-      screen.getByText(/restored your in-progress booking draft\./i),
+      screen.getByText(/found your previous booking draft/i),
     ).toBeInTheDocument();
 
     firstRender.unmount();
 
     render(<Scheduler services={services} staff={staff} />);
     expect(
-      screen.queryByText(/restored your in-progress booking draft\./i),
+      screen.queryByText(/found your previous booking draft/i),
     ).not.toBeInTheDocument();
   });
 
@@ -393,6 +405,12 @@ describe('Scheduler UX regressions', () => {
         }),
       })
       .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: { id: 'hold_456', expiresAt: '2026-03-02T17:05:00.000Z' },
+        }),
+      })
+      .mockResolvedValueOnce({
         ok: false,
         status: 429,
         headers: {
@@ -409,7 +427,7 @@ describe('Scheduler UX regressions', () => {
       screen.getByRole('button', { name: /find available slots/i }),
     );
     fireEvent.click(await screen.findByRole('radio', { name: /staff:/i }));
-    // Slot selection now auto-advances to contact step.
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.change(screen.getByLabelText(/first name/i), {
       target: { value: 'Pat' },
@@ -429,7 +447,12 @@ describe('Scheduler UX regressions', () => {
       .getAllByRole('checkbox')
       .slice(0, 3)
       .forEach((checkbox) => fireEvent.click(checkbox));
-    fireEvent.click(screen.getByRole('button', { name: /confirm booking/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /confirm booking/i })).toBeEnabled(),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /confirm booking/i }));
+    });
 
     await waitFor(() => {
       expect(
@@ -452,6 +475,12 @@ describe('Scheduler UX regressions', () => {
               staffId: 'stf-1',
             },
           ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: { id: 'hold_789', expiresAt: '2026-03-02T17:05:00.000Z' },
         }),
       })
       .mockResolvedValueOnce({
@@ -478,7 +507,7 @@ describe('Scheduler UX regressions', () => {
     );
 
     fireEvent.click(await screen.findByRole('radio', { name: /staff:/i }));
-    // Slot selection now auto-advances to contact step.
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
     fireEvent.change(screen.getByLabelText(/first name/i), {
       target: { value: 'Pat' },
     });
@@ -497,7 +526,12 @@ describe('Scheduler UX regressions', () => {
       .getAllByRole('checkbox')
       .slice(0, 3)
       .forEach((checkbox) => fireEvent.click(checkbox));
-    fireEvent.click(screen.getByRole('button', { name: /confirm booking/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /confirm booking/i })).toBeEnabled(),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /confirm booking/i }));
+    });
 
     await screen.findByText(/that time was just taken/i);
     fireEvent.click(screen.getByRole('button', { name: /9:30 am-10:00 am/i }));
