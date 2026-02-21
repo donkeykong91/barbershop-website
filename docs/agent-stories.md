@@ -1,5 +1,26 @@
 # Agent Story Tracking
 
+## 2026-02-20 — Sen — OpenClaw Step-2 Continue timeout false-blocker guard
+
+- [x] Root cause reconfirmed and documented:
+  - OpenClaw control-plane action acknowledgement can timeout at Step 2 Continue even when UI actually advanced to Step 3 in the same tab.
+  - Prior automation handling could misclassify this as hard failure without state verification.
+- [x] Implemented durable in-project guard for Step-2 continue flows:
+  - added `scripts/lib/openclaw-step2-continue-guard.js` with enforced single `targetId` usage.
+  - guard refreshes refs via fresh snapshot before each critical Continue click.
+  - timeout path immediately re-snapshots same `targetId` and checks Step 3.
+  - if Step 3 detected after timeout, guard returns success and allows workflow to continue.
+  - if not advanced, guard performs bounded retries with backoff, then throws `Step2ContinueGuardError` with diagnostic details.
+- [x] Added executable validation for timeout-recovery behavior:
+  - Jest tests: `__tests__/openclaw-step2-continue-guard.test.js`.
+  - Scripted validation: `scripts/validate-openclaw-step2-guard.mjs`.
+- [x] Updated operator docs with exact usage instructions:
+  - `docs/openclaw-step2-timeout-runbook.md` now includes exact guard invocation contract and failure-handling instructions.
+- [x] Ran relevant checks locally:
+  - `npm run test:step2-guard` ✅
+  - `npm run validate:step2-guard` ✅
+- [ ] Commit + push to `master`.
+
 ## 2026-02-20 — Sen — Booking Confirm Failure Round 12 (true root cause: COMMIT on non-active transaction)
 
 - [x] Reproduced failure on live after Round 11 and captured concrete runtime trace from Vercel logs:
