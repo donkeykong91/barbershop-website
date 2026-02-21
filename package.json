@@ -22,7 +22,9 @@
     "data-retention:apply": "node scripts/apply-data-retention.js",
     "test:jest": "jest --runInBand",
     "test:playwright": "playwright test",
-    "retention:run": "node scripts/run-data-retention.mjs"
+    "retention:run": "node scripts/run-data-retention.mjs",
+    "test:step2-guard": "jest --runInBand src/lib/automation/openclawStep2ContinueGuard.test.ts",
+    "validate:step2-guard": "node scripts/validate-openclaw-step2-guard.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",

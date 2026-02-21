@@ -29,8 +29,46 @@ During browser-tool automation on `/?staffId=stf_kevin#book`, clicking **Continu
 
 OpenClaw browser tooling guidance requires using refs from the latest snapshot and keeping actions on the same tab via `targetId`. Following that guidance eliminates ref/session drift and reduces control-plane flakiness impact.
 
-## Regression safeguard in this repo
+## In-repo automation guard (authoritative)
 
-- Added Playwright stability test:
+Implemented reusable guard:
+
+- `scripts/lib/openclaw-step2-continue-guard.js`
+  - enforces single `targetId`
+  - refreshes snapshot refs before Continue click
+  - on timeout, re-snapshots same `targetId` and checks for Step 3
+  - treats Step 3 as success (timeout false-negative recovery)
+  - bounded retry with backoff and clear diagnostic error on true failure
+
+### Operator usage (exact flow for agents)
+
+1. Open booking page and capture one `targetId`.
+2. Build a driver adapter that maps your browser actions to:
+   - `snapshot({ targetId, refs })`
+   - `findContinueRef(snapshot)`
+   - `click({ targetId, ref })`
+   - `isStep3(snapshot)`
+3. Call `continueFromStep2WithGuard(driver, { targetId })`.
+4. Continue workflow if return value has `advanced: true`.
+5. If it throws `Step2ContinueGuardError`, stop and surface `.details` in your report.
+
+Minimal invocation:
+
+```js
+const { continueFromStep2WithGuard } = require('./scripts/lib/openclaw-step2-continue-guard');
+
+const result = await continueFromStep2WithGuard(driver, {
+  targetId,
+  maxAttempts: 3,
+  backoffMs: [800, 1600],
+});
+```
+
+## Executable validation in this repo
+
+- Jest timeout-recovery tests:
+  - `npm run test:step2-guard`
+- Scripted smoke validation:
+  - `npm run validate:step2-guard`
+- Existing browser stability check remains:
   - `e2e/booking-step2-continue.stability.spec.ts`
-- This test executes Step 2 -> Step 3 transition three times in one run and verifies Step 3 is reached each time.
